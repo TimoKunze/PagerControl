@@ -1,0 +1,25 @@
+HKCR
+{
+	PagerCtlU.OLEDataObject.1 = s 'TimoSoft OLEDataObject Class 1.2 (Unicode)'
+	{
+		CLSID = s '{4E3C698C-2EC8-4607-AA14-62B6A591AB5E}'
+	}
+	PagerCtlU.OLEDataObject = s 'TimoSoft OLEDataObject Class (Unicode)'
+	{
+		CLSID = s '{4E3C698C-2EC8-4607-AA14-62B6A591AB5E}'
+		CurVer = s 'PagerCtlU.OLEDataObject.1'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {4E3C698C-2EC8-4607-AA14-62B6A591AB5E} = s 'TimoSoft OLEDataObject Class (Unicode)'
+		{
+			ProgID = s 'PagerCtlU.OLEDataObject.1'
+			VersionIndependentProgID = s 'PagerCtlU.OLEDataObject'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			'TypeLib' = s '{BF3044AA-8379-499E-B75E-34A1626746D4}'
+		}
+	}
+}

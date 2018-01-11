@@ -1,0 +1,1847 @@
+//////////////////////////////////////////////////////////////////////
+/// \mainpage Pager Documentation
+///
+/// \section intro_sec Introduction
+///
+/// %Pager is an ActiveX control that wraps the \c SysPager window class. It is optimized for
+/// Visual Basic 6.0, but should also work in any other environment that supports COM controls.
+///
+/// \section basics_sec Basics
+///
+/// The control superclasses the native pager window class of Windows: \c SysPager. Although I tried to
+/// wrap all features of this window class (status: Windows 10), some things may be missing. In these
+/// cases you usually may use the Win32 API and handle the control as a native pager window. One of my
+/// goals was it to create a pager control that may be controlled via API as well as via the classes that
+/// I implemented.
+///
+/// \section reqs_sec Requirements
+///
+/// %Pager Unicode runs on the following operating systems:
+/// - Windows XP (SP3 or later)
+/// - Windows Server 2003 (SP2 or later)
+/// - Windows Vista (SP2 or later)
+/// - Windows Server 2008 (SP2 or later)
+/// - Windows 7 (SP1 or later)
+/// - Windows Server 2008 R2 (SP1 or later)
+/// - Windows 8
+/// - Windows Server 2012
+/// - Windows 8.1
+/// - Windows Server 2012 R2
+/// - Windows 10
+/// - Windows Server 2016
+/// - Systems supported by Wine (Wine is a Win32 subsystem for alternative operating systems) - <strong>limited support</strong>
+/// - ReactOS (a free Windows XP clone) - <strong>limited support</strong>
+///
+/// Some features have additional requirements which are mentioned in the affected feature's
+/// documentation.\n
+/// Limited support means, that I won't invest much work to support those systems. If a feature works on
+/// a system tagged with "limited support" - fine; if it does not and it's easy to fix, I'll fix it, but if
+/// it's difficult to fix, I probably won't fix it. Also I will test the control much less on those systems.
+///
+/// \section support_sec Support
+///
+/// Although there's no entitlement to support, you've good chances to get help if you either post
+/// to the <a href="https://www.timosoft-software.de/forum/viewforum.php?f=46">forums</a> or
+/// <a href="mailto:Timo@TimoSoft-Software.de">send me a mail</a>.\n
+/// Bugs and feature requests should be entered into the <a href="https://bugtracker.timosoft-software.de">bug tracking system</a>.
+///
+/// \section lic_sec License
+///
+/// <pre>
+///      MIT License
+///
+///      Copyright (c) 2013-2018 Timo Kunze
+///
+///      Permission is hereby granted, free of charge, to any person obtaining a copy
+///      of this software and associated documentation files (the "Software"), to deal
+///      in the Software without restriction, including without limitation the rights
+///      to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+///      copies of the Software, and to permit persons to whom the Software is
+///      furnished to do so, subject to the following conditions:
+///
+///      The above copyright notice and this permission notice shall be included in all
+///      copies or substantial portions of the Software.
+///
+///      THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+///      IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+///      FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+///      AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+///      LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+///      OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+///      SOFTWARE.
+/// </pre>
+///
+/// \section acks_sec Acknowledgements
+///
+/// Thanks go to:
+/// - <a href="https://www.winehq.com">Wine Headquarters</a>, because Wine helped me a lot on
+///   understanding how Windows is working.
+/// - Microsoft, for ATL, WTL and Visual Studio - great libraries and a great IDE
+/// - <a href="https://www.geoffchappell.com">Geoff Chappell</a>, for his website about undocumented Win32
+///   API stuff.
+/// - Igor Tandetnik, for his great help on learning ATL and WTL
+/// - Dimitri van Heesch, for Doxygen
+/// - <a href="http://www.zabkat.com/">Nikos Bozinis</a>, for his awesome help with the Vista drag'n'drop
+///   stuff.
+/// - <a href="https://www.dateicommander.de">Christian Lütgens</a>, for his great work as beta-tester
+///   and for his help when I needed a 2nd opinion on some decisions.
+/// - All donators
+/// - For great music: Heaven Shall Burn, Arch Enemy, Machine Head, Trivium, Deadlock, Draconian, Soulfly,
+///   Delain, Lacuna Coil, Ensiferum, Epica, Sirenia, Tristania, Nightwish, Battlelore, Amon Amarth, Volbeat,
+///   Guns N' Roses
+///
+/// \section faq_sec FAQ
+///
+/// <strong>1. Why is event xyz not fired?</strong>\n
+/// Firing an event is relative time-consuming, even if the event isn't handled by the application at all.
+/// Therefore I implemented a \c DisabledEvents property which can be used to deactivate certain events.\n
+/// By default many events are deactivated.
+//////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////
+/// \namespace PagerCtlLibU
+/// \brief <em>Contains COM definitions for the control's public interface</em>
+///
+/// This is the Unicode version of the Pager COM library.
+//////////////////////////////////////////////////////////////////////
+
+
+#include "olectl.h"
+#include "CompilerFlags.h"
+#include "DispIDs.h"
+
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
+	// interface is not automation marshaling conformant, requires Windows NT 4.0 SP4 or greater
+	midl_pragma warning(disable: 2039)
+	// identifier length exceeds 31 characters
+	midl_pragma warning(disable: 2111)
+	// too many methods in the interface, requires Windows NT 4.0 SP3 or greater
+	midl_pragma warning(disable: 2362)
+#endif
+
+import "oaidl.idl";
+import "ocidl.idl";
+
+
+[
+	uuid(BF3044AA-8379-499E-B75E-34A1626746D4),
+	version(1.2),
+	helpstring("TimoSoft Pager 1.2 (Unicode)")
+]
+library PagerCtlLibU
+{
+	importlib("stdole2.tlb");
+
+
+	/// \brief <em>Constants used with the \c Appearance property</em>
+	///
+	/// \sa IPager::Appearance
+	[helpstring("Constants used with the 'Appearance' property.")]
+	typedef enum AppearanceConstants {
+		/// \brief The control is drawn with a flat border
+		[helpstring("The control is drawn flat.")]
+		a2D,
+		/// \brief The control is drawn with a normal 3D border
+		[helpstring("The control is drawn with a normal 3D border.")]
+		a3D,
+		/// \brief The control is drawn with a light 3D border
+		[helpstring("The control is drawn with a light 3D border.")]
+		a3DLight
+	} AppearanceConstants;
+
+	/// \brief <em>Constants used with the \c BorderStyle property</em>
+	///
+	/// \sa IPager::BorderStyle
+	[helpstring("Constants used with the 'BorderStyle' property.")]
+	typedef enum BorderStyleConstants {
+		/// \brief The control is drawn without an inner border
+		[helpstring("The control is drawn without an additional border.")]
+		bsNone,
+		/// \brief The control is drawn with an inner border
+		[helpstring("The control is drawn with an additional border.")]
+		bsFixedSingle
+	} BorderStyleConstants;
+
+	/// \brief <em>Flags used with the \c DisabledEvents property</em>
+	///
+	/// \sa IPager::DisabledEvents
+	[helpstring("Flags used with the 'DisabledEvents' property. They can be combined.")]
+	typedef enum DisabledEventsConstants {
+		/// \brief Mouse events won't be fired
+		///
+		/// The following events won't be fired: \c MouseDown, \c MouseUp, \c MouseEnter, \c MouseHover,
+		/// \c MouseLeave, \c MouseMove
+		///
+		/// \sa _IPagerEvents::MouseDown, _IPagerEvents::MouseUp, _IPagerEvents::MouseEnter,
+		///     _IPagerEvents::MouseHover, _IPagerEvents::MouseLeave, _IPagerEvents::MouseMove
+		[helpstring("Disables the following events: MouseDown, MouseUp, MouseEnter, MouseHover, MouseLeave, MouseMove")]
+		deMouseEvents = 0x01,
+		/// \brief Click events won't be fired
+		///
+		/// The following events won't be fired: \c Click, \c DblClick, \c MClick, \c MDblClick,
+		/// \c RClick, \c RDblClick, \c XClick, \c XDblClick
+		///
+		/// \sa _IPagerEvents::Click, _IPagerEvents::DblClick, _IPagerEvents::MClick,
+		///     _IPagerEvents::MDblClick, _IPagerEvents::RClick, _IPagerEvents::RDblClick,
+		///     _IPagerEvents::XClick, _IPagerEvents::XDblClick
+		[helpstring("Disables the following events: Click, DblClick, MClick, MDblClick, RClick, RDblClick, XClick, XDblClick")]
+		deClickEvents = 0x02,
+		/// \brief Events concerning hot button changes won't be fired
+		///
+		/// The following event won't be fired: \c HotButtonChanging
+		///
+		/// \sa _IPagerEvents::HotButtonChanging
+		[helpstring("Disables the following event: HotButtonChanging")]
+		deHotButtonChangeEvents = 0x20000
+	} DisabledEventsConstants;
+
+	/// \brief <em>Constants used with the \c IOLEDataObject::GetDropDescription and IOLEDataObject::SetDropDescription methods</em>
+	///
+	/// \sa IOLEDataObject::GetDropDescription, IOLEDataObject::SetDropDescription
+	[helpstring("Constants used with the 'OLEDataObject.GetDropDescription' and 'OLEDataObject.SetDropDescription' methods.")]
+	typedef enum DropDescriptionIconConstants {
+		/// \brief No drop description is displayed
+		[helpstring("No drop description is displayed.")]
+		ddiNone = -1/*DROPIMAGE_INVALID*/,     // should be 8 (DROPIMAGE_NOIMAGE)
+		/// \brief The drop description icon that visualizes the \c odeNone drop effect is displayed
+		[helpstring("The drop description icon that visualizes the 'odeNone' drop effect is displayed.")]
+		ddiNoDrop = 0/*DROPIMAGE_NONE*/,
+		/// \brief The drop description icon that visualizes the \c odeCopy drop effect is displayed
+		[helpstring("The drop description icon that visualizes the 'odeCopy' drop effect is displayed.")]
+		ddiCopy = 1/*DROPIMAGE_COPY*/,
+		/// \brief The drop description icon that visualizes the \c odeMove drop effect is displayed
+		[helpstring("The drop description icon that visualizes the 'odeMove' drop effect is displayed.")]
+		ddiMove = 2/*DROPIMAGE_MOVE*/,
+		/// \brief The drop description icon that visualizes the \c odeLink drop effect is displayed
+		[helpstring("The drop description icon that visualizes the 'odeLink' drop effect is displayed.")]
+		ddiLink = 4/*DROPIMAGE_LINK*/,
+		/// \brief The drop description icon that visualizes a drop, which causes a metadata change, is displayed
+		[helpstring("The drop description icon that visualizes a drop, which causes a metadata change, is displayed.")]
+		ddiMetadataChange = 6/*DROPIMAGE_LABEL*/,
+		/// \brief The drop description icon that visualizes a warning is displayed
+		[helpstring("The drop description icon that visualizes a warning is displayed.")]
+		ddiWarning = 7/*DROPIMAGE_WARNING*/,
+		/// \brief The default drop description is displayed
+		///
+		/// \remarks Requires Windows 7 or newer.
+		[helpstring("The default drop description is displayed. Requires Windows 7 or newer.")]
+		ddiUseDefault = 8/*DROPIMAGE_NOIMAGE*/     // should be -1 (DROPIMAGE_INVALID)
+	} DropDescriptionIconConstants;
+
+	/// \brief <em>Constants used with the extended mouse button events</em>
+	///
+	/// \sa _IPagerEvents::MouseDown, _IPagerEvents::MouseEnter, _IPagerEvents::MouseHover,
+	///     _IPagerEvents::MouseLeave, _IPagerEvents::MouseMove, _IPagerEvents::MouseUp,
+	///     _IPagerEvents::XClick, _IPagerEvents::XDblClick
+	[helpstring("Constants used with the extended mouse button events.")]
+	typedef enum ExtendedMouseButtonConstants {
+		/// \brief Identifies the first extended mouse button
+		[helpstring("Identifies the first extended mouse button.")]
+		embXButton1 = 0x20,
+		/// \brief Identifies the second extended mouse button
+		[helpstring("Identifies the second extended mouse button.")]
+		embXButton2 = 0x40
+	} ExtendedMouseButtonConstants;
+
+	/// \brief <em>Constants used with the \c HitTest method</em>
+	///
+	/// \sa IPager::HitTest
+	[helpstring("Constants used with the 'HitTest' method.")]
+	typedef enum HitTestConstants {
+		/// \brief Over the top (vertical orientation) or left (horizontal orientation) scroll button
+		///
+		/// The specified point lies over the top (vertical orientation) or left (horizontal orientation)
+		/// scroll button.
+		[helpstring("The specified point lies over the top (vertical orientation) or left (horizontal orientation) scroll button.")]
+		htTopOrLeftScrollButton = 0x0001,
+		/// \brief Over the bottom (vertical orientation) or right (horizontal orientation) scroll button
+		///
+		/// The specified point lies over the bottom (vertical orientation) or right (horizontal orientation)
+		/// scroll button.
+		[helpstring("The specified point lies over the bottom (vertical orientation) or right (horizontal orientation) scroll button.")]
+		htBottomOrRightScrollButton = 0x0002,
+		/// \brief Over the top (horizontal orientation) or left (vertical orientation) border
+		///
+		/// The specified point lies over the top (horizontal orientation) or left (vertical orientation)
+		/// border.
+		[helpstring("The specified point lies over the top (horizontal orientation) or left (vertical orientation) border.")]
+		htTopOrLeftBorder = 0x0004,
+		/// \brief Over the bottom (horizontal orientation) or right (vertical orientation) border
+		///
+		/// The specified point lies over the bottom (horizontal orientation) or right (vertical orientation)
+		/// border.
+		[helpstring("The specified point lies over the bottom (horizontal orientation) or right (vertical orientation) border.")]
+		htBottomOrRightBorder = 0x0008,
+		/// \brief Above the control's client area
+		///
+		/// The specified point lies above the control's client area.
+		[helpstring("The specified point lies above the control's client area.")]
+		htAbove = 0x0100,
+		/// \brief Below the control's client area
+		///
+		/// The specified point lies below the control's client area.
+		[helpstring("The specified point lies below the control's client area.")]
+		htBelow = 0x0200,
+		/// \brief To the right of the control's client area
+		///
+		/// The specified point lies to the right of the control's client area.
+		[helpstring("The specified point lies to the right of the control's client area.")]
+		htToRight = 0x0400,
+		/// \brief To the left of the control's client area
+		///
+		/// The specified point lies to the left of the control's client area.
+		[helpstring("The specified point lies to the left of the control's client area.")]
+		htToLeft = 0x0800,
+		/// \brief In the control's client area
+		///
+		/// The specified point lies in the control's client area.
+		[helpstring("The specified point lies in the control's client area.")]
+		htClientArea = 0x1000
+	} HitTestConstants;
+
+	/// \brief <em>Flags used with the \c HotButtonChanging event</em>
+	///
+	/// \sa _IPagerEvents::HotButtonChanging
+	[helpstring("Flags used with the 'HotButtonChanging' event.")]
+	typedef enum HotButtonChangingAdditionalInfoConstants {
+		/// \brief The control previously did not have a hot button
+		[helpstring("The control previously did not have a hot button.")]
+		hbcaiEntering = 0x0010/*HICF_ENTERING*/,
+		/// \brief The control does not have a hot button anymore
+		[helpstring("The control does not have a hot button anymore.")]
+		hbcaiLeaving = 0x0020/*HICF_LEAVING*/
+	} HotButtonChangingAdditionalInfoConstants;
+
+	/// \brief <em>Flags used with the \c HotButtonChanging event</em>
+	///
+	/// \sa _IPagerEvents::HotButtonChanging
+	[helpstring("Flags used with the 'HotButtonChanging' event.")]
+	typedef enum HotButtonChangingCausedByConstants {
+		/// \brief The reason for the hot button change is unspecified
+		[helpstring("The reason for the hot button change is unspecified.")]
+		hbccbOther = 0x0000/*HICF_OTHER*/
+	} HotButtonChangingCausedByConstants;
+
+	/// \brief <em>Constants used with the \c MousePointer property</em>
+	///
+	/// \sa IPager::MousePointer
+	[helpstring("Constants used with the 'MousePointer' property.")]
+	typedef enum MousePointerConstants {
+		/// \brief The default mouse cursor is used
+		[helpstring("The default mouse cursor is used.")]
+		mpDefault,
+		/// \brief The default arrow is used as mouse cursor
+		[helpstring("The default arrow is used as mouse cursor.")]
+		mpArrow,
+		/// \brief A cross is used as mouse cursor
+		[helpstring("A cross is used as mouse cursor.")]
+		mpCross,
+		/// \brief A vertical beam (like in textboxes) is used as mouse cursor
+		[helpstring("A vertical beam (like in textboxes) is used as mouse cursor.")]
+		mpIBeam,
+		/// \brief An icon is used as mouse cursor
+		[helpstring("An icon is used as mouse cursor.")]
+		mpIcon,
+		/// \brief A mouse cursor indicating window sizing is used
+		[helpstring("A mouse cursor indicating window sizing is used.")]
+		mpSize,
+		/// \brief A mouse cursor indicating window sizing is used
+		///
+		/// This is the cursor that is used while resizing a window into the direction of its
+		/// upper-right or lower-left corner.
+		[helpstring("A mouse cursor indicating window sizing to the direction of a window's upper-right or lower-left corner is used.")]
+		mpSizeNESW,
+		/// \brief A mouse cursor indicating window sizing is used
+		///
+		/// This is the cursor that is used while resizing a window into the direction of its upper or
+		/// lower border.
+		[helpstring("A mouse cursor indicating window sizing to the direction of a window's upper or lower border is used.")]
+		mpSizeNS,
+		/// \brief A mouse cursor indicating window sizing is used
+		///
+		/// This is the cursor that is used while resizing a window into the direction of its
+		/// upper-left or lower-right corner.
+		[helpstring("A mouse cursor indicating window sizing to the direction of a window's upper-left or lower-right corner is used.")]
+		mpSizeNWSE,
+		/// \brief A mouse cursor indicating window sizing is used
+		///
+		/// This is the cursor that is used while resizing a window into the direction of its left or
+		/// right border.
+		[helpstring("A mouse cursor indicating window sizing to the direction of a window's left or right border is used.")]
+		mpSizeEW,
+		/// \brief An arrow pointing upwardly is used as mouse cursor
+		[helpstring("An arrow pointing upwardly is used as mouse cursor.")]
+		mpUpArrow,
+		/// \brief An hourglass is used as mouse cursor.
+		[helpstring("An hourglass is used as mouse cursor.")]
+		mpHourglass,
+		/// \brief An mouse cursor indicating that the control can't be a drop target is used
+		[helpstring("An mouse cursor indicating that the control can't be a drop target is used.")]
+		mpNoDrop,
+		/// \brief The default arrow with a small hourglass is used as mouse cursor
+		[helpstring("The default arrow with a small hourglass is used as mouse cursor.")]
+		mpArrowHourglass,
+		/// \brief The default arrow with a small question mark is used as mouse cursor
+		[helpstring("The default arrow with a small question mark is used as mouse cursor.")]
+		mpArrowQuestion,
+		/// \brief A mouse cursor indicating window sizing to all directions is used
+		[helpstring("A mouse cursor indicating window sizing to all directions is used.")]
+		mpSizeAll,
+		/// \brief A hand typically used for hyperlinks is used as mouse cursor
+		[helpstring("A hand typically used for hyperlinks is used as mouse cursor.")]
+		mpHand,
+		/// \brief A mouse cursor indicating that the program waits for some media is used
+		[helpstring("A mouse cursor indicating that the program waits for some media is used.")]
+		mpInsertMedia,
+		/// \brief A mouse cursor indicating scrolling to all directions is used
+		[helpstring("A mouse cursor indicating scrolling to all directions is used.")]
+		mpScrollAll,
+		/// \brief A mouse cursor indicating scrolling upwardly is used
+		[helpstring("A mouse cursor indicating scrolling upwardly is used.")]
+		mpScrollN,
+		/// \brief A mouse cursor indicating scrolling to the window's upper-right corner is used
+		[helpstring("A mouse cursor indicating scrolling to the window's upper-right corner is used.")]
+		mpScrollNE,
+		/// \brief A mouse cursor indicating scrolling to the window's right border is used
+		[helpstring("A mouse cursor indicating scrolling to the window's right border is used.")]
+		mpScrollE,
+		/// \brief A mouse cursor indicating scrolling to the window's lower-right corner is used
+		[helpstring("A mouse cursor indicating scrolling to the window's lower-right corner is used.")]
+		mpScrollSE,
+		/// \brief A mouse cursor indicating scrolling downwards is used
+		[helpstring("A mouse cursor indicating scrolling downwards is used.")]
+		mpScrollS,
+		/// \brief A mouse cursor indicating scrolling to the window's lower-left corner is used
+		[helpstring("A mouse cursor indicating scrolling to the window's lower-left corner is used.")]
+		mpScrollSW,
+		/// \brief A mouse cursor indicating scrolling to the window's left border is used
+		[helpstring("A mouse cursor indicating scrolling to the window's left border is used.")]
+		mpScrollW,
+		/// \brief A mouse cursor indicating scrolling to the window's upper-left corner is used
+		[helpstring("A mouse cursor indicating scrolling to the window's upper-left corner is used.")]
+		mpScrollNW,
+		/// \brief A mouse cursor indicating scrolling upwardly or downwards is used
+		[helpstring("A mouse cursor indicating scrolling upwardly or downwards is used.")]
+		mpScrollNS,
+		/// \brief A mouse cursor indicating scrolling to the window's left or right border is used
+		[helpstring("A mouse cursor indicating scrolling to the window's left or right border is used.")]
+		mpScrollEW,
+		/// \brief The custom mouse cursor defined by the \c MouseIcon property is used
+		[helpstring("The custom mouse cursor defined by the MouseIcon property is used.")]
+		mpCustom = 0x63
+	} MousePointerConstants;
+
+	/// \brief <em>Constants used with OLE drag'n'drop</em>
+	///
+	/// \sa _IPagerEvents::OLEDragEnter, _IPagerEvents::OLEDragMouseMove, _IPagerEvents::OLEDragDrop
+	[helpstring("Constants used with the OLEDrag* events.")]
+	typedef enum OLEDropEffectConstants {
+		/// \brief No OLE drag and drop operation has occurred or will occur
+		[helpstring("No OLE drag and drop operation has occurred or will occur.")]
+		odeNone = 0 /*DROPEFFECT_NONE*/,
+		/// \brief A copy has occured or will occur
+		[helpstring("A copy has occured or will occur.")]
+		odeCopy = 1 /*DROPEFFECT_COPY*/,
+		/// \brief A move has occured or will occur
+		[helpstring("A move has occured or will occur.")]
+		odeMove = 2 /*DROPEFFECT_MOVE*/,
+		/// \brief A link has occured or will occur
+		[helpstring("A link has occured or will occur.")]
+		odeLink = 4 /*DROPEFFECT_LINK*/,
+		/// \brief Combination of \c odeCopy and \c odeMove
+		[helpstring("Combination of 'odeCopy' and 'odeMove'.")]
+		odeCopyOrMove = odeCopy | odeMove,
+		/// \brief The drop target window has scrolled or will scroll
+		[helpstring("The drop target window has scrolled or will scroll.")]
+		odeScroll = 0x80000000 /*DROPEFFECT_SCROLL*/
+	} OLEDropEffectConstants;
+
+	/// \brief <em>Constants used with the \c Orientation property</em>
+	///
+	/// \sa IPager::Orientation
+	[helpstring("Constants used with the 'Orientation' property.")]
+	typedef enum OrientationConstants {
+		/// \brief The pager scrolls horizontally
+		[helpstring("The pager scrolls horizontally.")]
+		oHorizontal,
+		/// \brief The pager scrolls vertically
+		[helpstring("The pager scrolls vertically.")]
+		oVertical
+	} OrientationConstants;
+
+	/// \brief <em>Flags used with the \c ScrollAutomatically property</em>
+	///
+	/// \sa IPager::ScrollAutomatically
+	[helpstring("Flags used with the 'ScrollAutomatically' property. They can be combined.")]
+	typedef enum ScrollAutomaticallyConstants {
+		/// \brief Scroll automatically if the mouse cursor is moved over the scroll button
+		[helpstring("Scroll automatically if the mouse cursor is moved over the scroll button.")]
+		saOnMouseOver = 0x01,
+		/// \brief During drag'n'drop, scroll automatically if the mouse cursor is moved over the scroll button
+		[helpstring("During drag'n'drop, scroll automatically if the mouse cursor is moved over the scroll button.")]
+		saOnDragDrop = 0x02
+	} ScrollAutomaticallyConstants;
+
+	/// \brief <em>Constants used with the \c ScrollButtonState property</em>
+	///
+	/// \sa IPager::ScrollButtonState
+	[helpstring("Constants used with the 'ScrollButtonState' property.")]
+	typedef enum ScrollButtonConstants {
+		/// \brief Identifies the top (vertical orientation) or left (horizontal orientation) scroll button
+		[helpstring("Identifies the top (vertical orientation) or left (horizontal orientation) scroll button.")]
+		sbTopOrLeft = 0/*PGB_TOPORLEFT*/,
+		/// \brief Identifies the bottom (vertical orientation) or right (horizontal orientation) scroll button
+		[helpstring("Identifies the bottom (vertical orientation) or right (horizontal orientation) scroll button.")]
+		sbBottomOrRight = 1/*PGB_BOTTOMORRIGHT*/
+	} ScrollButtonConstants;
+
+	/// \brief <em>Flags used with the \c ScrollButtonState property</em>
+	///
+	/// \sa IPager::ScrollButtonState
+	[helpstring("Flags used with the 'ScrollButtonState' property. They can be combined.")]
+	typedef enum ScrollButtonStateConstants {
+		/// \brief The scroll button is not visible
+		[helpstring("The scroll button is not visible.")]
+		sbsInvisible = 0x00/*PGF_INVISIBLE*/,
+		/// \brief The scroll button is in normal state
+		[helpstring("The scroll button is in normal state.")]
+		sbsNormal = 0x01/*PGF_NORMAL*/,
+		/// \brief The scroll button is disabled
+		[helpstring("The scroll button is disabled.")]
+		sbsDisabled = 0x02/*PGF_GRAYED*/,
+		/// \brief The scroll button is pressed
+		[helpstring("The scroll button is pressed.")]
+		sbsPressed = 0x04/*PGF_DEPRESSED*/,
+		/// \brief The scroll button is hot, i.e. under the mouse cursor
+		[helpstring("The scroll button is hot, i.e. under the mouse cursor.")]
+		sbsHot = 0x08/*PGF_HOT*/,
+	} ScrollButtonStateConstants;
+
+	/// \brief <em>Constants used with the \c BeforeScroll event</em>
+	///
+	/// \sa _IPagerEvents::BeforeScroll
+	[helpstring("Constants used with the 'BeforeScroll' event.")]
+	typedef enum ScrollDirectionConstants {
+		/// \brief The contained window is being scrolled up
+		[helpstring("The contained window is being scrolled up.")]
+		sdScrollUp = 0x01/*PGF_SCROLLUP*/,
+		/// \brief The contained window is being scrolled down
+		[helpstring("The contained window is being scrolled down.")]
+		sdScrollDown = 0x02/*PGF_SCROLLDOWN*/,
+		/// \brief The contained window is being scrolled to the left
+		[helpstring("The contained window is being scrolled to the left.")]
+		sdScrollLeft = 0x04/*PGF_SCROLLLEFT*/,
+		/// \brief The contained window is being scrolled to the right
+		[helpstring("The contained window is being scrolled to the right.")]
+		sdScrollRight = 0x08/*PGF_SCROLLRIGHT*/
+	} ScrollDirectionConstants;
+
+	/// \brief <em>Holds the coordinates of a rectangle's opposing corners</em>
+	///
+	/// \sa _IPagerEvents::BeforeScroll
+	// NOTE: If we change the UUID, we also need to update _IPagerEvents_CP.h!
+	[helpstring("Holds a rectangle's position and size."), uuid(93935090-6410-440A-99AA-19742C1574D6)]
+	typedef struct RECTANGLE
+	{
+		/// \brief <em>Holds the position of the rectangle's left border in pixels</em>
+		[helpstring("Holds the position of the rectangle's left border in pixels.")]
+		OLE_XPOS_PIXELS Left;
+		/// \brief <em>Holds the position of the rectangle's upper border in pixels</em>
+		[helpstring("Holds the position of the rectangle's upper border in pixels.")]
+		OLE_YPOS_PIXELS Top;
+		/// \brief <em>Holds the position of the rectangle's right border in pixels</em>
+		[helpstring("Holds the position of the rectangle's right border in pixels.")]
+		OLE_XPOS_PIXELS Right;
+		/// \brief <em>Holds the position of the rectangle's lower border in pixels</em>
+		[helpstring("Holds the position of the rectangle's lower border in pixels.")]
+		OLE_YPOS_PIXELS Bottom;
+	} RECTANGLE;
+
+
+	/// \interface IOLEDataObject
+	/// \brief <em>Wraps the \c IDataObject interface</em>
+	///
+	/// This interface provides easy access to data being transferred using the \c IDataObject interface.
+	///
+	/// \sa _IOLEDataObjectEvents,
+	///     <a href="https://msdn.microsoft.com/en-us/library/ms688421.aspx">IDataObject</a>
+	[
+		object,
+		uuid(F7F45475-96DC-47D1-BF6D-096F6B1CB432),
+		dual,
+		nonextensible,
+		helpstring("IOLEDataObject interface"),
+		pointer_default(unique)
+	]
+	interface IOLEDataObject : IDispatch
+	{
+		/// \brief <em>Deletes the contents of the \c OLEDataObject object</em>
+		///
+		/// \remarks This method will succeed only if the \c OLEDataObject wraps the control's own
+		///          implementation of the \c IDataObject interface.
+		///
+		/// \sa SetData,
+		///     <a href="https://msdn.microsoft.com/en-us/library/ms688421.aspx">IDataObject</a>
+		[id(DISPID_ODO_CLEAR), helpstring("Deletes the contents of the 'OLEDataObject' object.")]
+		HRESULT Clear(void);
+		/// \brief <em>Retrieves the best format settings from the \c OLEDataObject object</em>
+		///
+		/// Call this method to retrieve data format settings that match best with the data format, that you
+		/// actually want to work with. Set the parameters to the data format settings you want to work with.
+		/// The method will set them to the settings you should use.
+		///
+		/// \param[in,out] formatID An integer value specifying the data format. Valid values are those defined
+		///                by VB's \c ClipBoardConstants enumeration, but also any other format that was
+		///                registered using the \c RegisterClipboardFormat API function.
+		/// \param[in,out] index An integer value that is assigned to the internal \c FORMATETC struct's
+		///                \c lindex member. Usually you pass -1 here, but some formats like
+		///                \c CFSTR_FILECONTENTS require multiple \c FORMATETC structs for the same format. In
+		///                such cases you'll give each struct of this format a separate index.
+		/// \param[in,out] dataOrViewAspect An integer value that is assigned to the internal \c FORMATETC
+		///                struct's \c dwAspect member. Any of the \c DVASPECT_* values defined by the
+		///                Microsoft&reg; Windows&reg; SDK are valid. The default is \c DVASPECT_CONTENT.
+		///
+		/// \sa GetData, GetFormat,
+		///     <a href="https://msdn.microsoft.com/en-us/library/ms649049.aspx">RegisterClipboardFormat</a>,
+		///     <a href="https://msdn.microsoft.com/en-us/library/ms682177.aspx">FORMATETC</a>,
+		///     <a href="https://msdn.microsoft.com/en-us/library/bb776902.aspx#CFSTR_FILECONTENTS">CFSTR_FILECONTENTS</a>,
+		///     <a href="https://msdn.microsoft.com/en-us/library/ms690318.aspx">DVASPECT</a>
+		[id(DISPID_ODO_GETCANONICALFORMAT), helpstring("Call this method to retrieve data format settings that match best with the data format, that you actually want to work with.")]
+		HRESULT GetCanonicalFormat([in, out] LONG* formatID, [in, out] LONG* Index, [in, out] LONG* dataOrViewAspect);
+		/// \brief <em>Retrieves data from the \c OLEDataObject object</em>
+		///
+		/// Retrieves data from the \c OLEDataObject object, that has the specified format.
+		///
+		/// \param[in] formatID An integer value specifying the format of the data to retrieve. Valid values
+		///            are those defined by VB's \c ClipBoardConstants enumeration, but also any other format
+		///            that has been registered using the \c RegisterClipboardFormat API function.
+		/// \param[in] index An integer value that is assigned to the internal \c FORMATETC struct's \c lindex
+		///            member. Usually you pass -1 here, but some formats like \c CFSTR_FILECONTENTS require
+		///            multiple \c FORMATETC structs for the same format. In such cases you'll give each struct
+		///            of this format a separate index.
+		/// \param[in] dataOrViewAspect An integer value that is assigned to the internal \c FORMATETC struct's
+		///            \c dwAspect member. Any of the \c DVASPECT_* values defined by the Microsoft&reg;
+		///            Windows&reg; SDK are valid. The default is \c DVASPECT_CONTENT.
+		///
+		/// \return The data that has the specified format.
+		///
+		/// \remarks This method will fail, if the \c OLEDataObject object does not contain data of the
+		///          specified format.
+		///
+		/// \sa GetCanonicalFormat, GetFormat, SetData,
+		///     <a href="https://msdn.microsoft.com/en-us/library/ms649049.aspx">RegisterClipboardFormat</a>,
+		///     <a href="https://msdn.microsoft.com/en-us/library/ms682177.aspx">FORMATETC</a>,
+		///     <a href="https://msdn.microsoft.com/en-us/library/bb776902.aspx#CFSTR_FILECONTENTS">CFSTR_FILECONTENTS</a>,
+		///     <a href="https://msdn.microsoft.com/en-us/library/ms690318.aspx">DVASPECT</a>
+		[id(DISPID_ODO_GETDATA), helpstring("Retrieves data from the 'OLEDataObject' object.")]
+		HRESULT GetData([in] LONG formatID, [in, defaultvalue(-1)] LONG Index, [in, defaultvalue(1)] LONG dataOrViewAspect, [out, retval] VARIANT* pData);
+		/// \brief <em>Retrieves the \c DROPDESCRIPTION data stored by the \c OLEDataObject object</em>
+		///
+		/// Retrieves the \c DROPDESCRIPTION data stored by the \c OLEDataObject object. The drop description
+		/// describes what will happen if the user drops the dragged data at the current position. It is
+		/// displayed at the bottom of the drag image.
+		///
+		/// \param[in,out] targetDescription Receives the description of the current drop target.
+		/// \param[in,out] actionDescription Receives the description of the whole drop action, i. e. a string
+		///                like <em>"Copy to %1"</em> where <em>"Copy to"</em> is the description of the current
+		///                drop effect and <em>"%1"</em> is the placeholder for the drop target description
+		///                specified by \c targetDescription.
+		/// \param[in,out] icon Receives the icon used to visualize the current drop effect. Any of the values
+		///                defined by the \c DropDescriptionIconConstants enumeration is valid.
+		///
+		/// \remarks In the \c actionDescription string, the sign "%" is escaped as "%%".\n
+		///          Requires Windows Vista or newer.
+		///
+		/// \sa SetDropDescription, IPager::SupportOLEDragImages, DropDescriptionIconConstants,
+		///     <a href="https://msdn.microsoft.com/en-us/library/bb773268.aspx">DROPDESCRIPTION</a>
+		[id(DISPID_ODO_GETDROPDESCRIPTION), helpstring("Retrieves the 'DROPDESCRIPTION' data stored by the 'OLEDataObject' object. Requires Windows Vista or newer.")]
+		HRESULT GetDropDescription([in, out, optional] VARIANT* targetDescription, [in, out, optional] VARIANT* actionDescription, [in, out, defaultvalue(0)] DropDescriptionIconConstants* Icon);
+		/// \brief <em>Retrieves whether the \c OLEDataObject object contains data in a specific format</em>
+		///
+		/// \param[in] formatID An integer value specifying the format to check for. Valid values are those
+		///            defined by VB's \c ClipBoardConstants enumeration, but also any other format that was
+		///            registered using the \c RegisterClipboardFormat API function.
+		/// \param[in] index An integer value that is assigned to the internal \c FORMATETC struct's \c lindex
+		///            member. Usually you pass -1 here, but some formats like \c CFSTR_FILECONTENTS require
+		///            multiple \c FORMATETC structs for the same format. In such cases you'll give each struct
+		///            of this format a separate index.
+		/// \param[in] dataOrViewAspect An integer value that is assigned to the internal \c FORMATETC struct's
+		///            \c dwAspect member. Any of the \c DVASPECT_* values defined by the Microsoft&reg;
+		///            Windows&reg; SDK are valid. The default is \c DVASPECT_CONTENT.
+		///
+		/// \return \c True, if the \c OLEDataObject object contains data in the specified format;
+		///         otherwise \c False.
+		///
+		/// \sa GetCanonicalFormat, GetData, SetData,
+		///     <a href="https://msdn.microsoft.com/en-us/library/ms649049.aspx">RegisterClipboardFormat</a>,
+		///     <a href="https://msdn.microsoft.com/en-us/library/ms682177.aspx">FORMATETC</a>,
+		///     <a href="https://msdn.microsoft.com/en-us/library/bb776902.aspx#CFSTR_FILECONTENTS">CFSTR_FILECONTENTS</a>,
+		///     <a href="https://msdn.microsoft.com/en-us/library/ms690318.aspx">DVASPECT</a>
+		[id(DISPID_ODO_GETFORMAT), helpstring("Retrieves whether the 'OLEDataObject' object contains data in a specific format.")]
+		HRESULT GetFormat([in] LONG formatID, [in, defaultvalue(-1)] LONG Index, [in, defaultvalue(1)] LONG dataOrViewAspect, [out, retval] VARIANT_BOOL* pFormatAvailable);
+		/// \brief <em>Inserts data into the \c OLEDataObject object using the specified format</em>
+		///
+		/// \param[in] formatID An integer value specifying the format of the data being passed. Valid values
+		///            are those defined by VB's \c ClipBoardConstants enumeration, but also any other format
+		///            that has been registered using the \c RegisterClipboardFormat API function.
+		/// \param[in] data The data to insert. If not specified, the \c OLESetData event will be raised if
+		///            data of the specified format is requested from the \c OLEDataObject object.
+		/// \param[in] index An integer value that is assigned to the internal \c FORMATETC struct's \c lindex
+		///            member. Usually you pass -1 here, but some formats like \c CFSTR_FILECONTENTS require
+		///            multiple \c FORMATETC structs for the same format. In such cases you'll give each struct
+		///            of this format a separate index.
+		/// \param[in] dataOrViewAspect An integer value that is assigned to the internal \c FORMATETC struct's
+		///            \c dwAspect member. Any of the \c DVASPECT_* values defined by the Microsoft&reg;
+		///            Windows&reg; SDK are valid. The default is \c DVASPECT_CONTENT.
+		///
+		/// \remarks The \c data parameter is optional only if the \c OLEDataObject wraps the control's own
+		///          implementation of the \c IDataObject interface.
+		///
+		/// \sa GetData, Clear,
+		///     <a href="https://msdn.microsoft.com/en-us/library/ms649049.aspx">RegisterClipboardFormat</a>,
+		///     <a href="https://msdn.microsoft.com/en-us/library/ms688421.aspx">IDataObject</a>,
+		///     <a href="https://msdn.microsoft.com/en-us/library/ms682177.aspx">FORMATETC</a>,
+		///     <a href="https://msdn.microsoft.com/en-us/library/bb776902.aspx#CFSTR_FILECONTENTS">CFSTR_FILECONTENTS</a>,
+		///     <a href="https://msdn.microsoft.com/en-us/library/ms690318.aspx">DVASPECT</a>
+		[id(DISPID_ODO_SETDATA), helpstring("Inserts data into the 'OLEDataObject' object using the specified format.")]
+		HRESULT SetData([in] LONG formatID, [in, optional] VARIANT data, [in, defaultvalue(-1)] LONG Index, [in, defaultvalue(1)] LONG dataOrViewAspect);
+		/// \brief <em>Sets the drop description displayed below the drag image</em>
+		///
+		/// Sets the \c DROPDESCRIPTION data. The drop description describes what will happen if the user drops
+		/// the dragged data at the current position. It is displayed at the bottom of the drag image.
+		///
+		/// \param[in] targetDescription The description of the current drop target.
+		/// \param[in] actionDescription The description of the whole drop action, i. e. a string like <em>"Copy
+		///            to %1"</em> where <em>"Copy to"</em> is the description of the current drop effect and
+		///            <em>"%1"</em> is the placeholder for the drop target description specified by
+		///            \c targetDescription.
+		/// \param[in] icon The icon used to visualize the current drop effect. Any of the values defined by
+		///            the \c DropDescriptionIconConstants enumeration is valid.
+		///
+		/// \remarks In the \c actionDescription string, the sign "%" is escaped as "%%".\n
+		///          Requires Windows Vista or newer.
+		///
+		/// \sa GetDropDescription, IPager::SupportOLEDragImages, DropDescriptionIconConstants,
+		///     <a href="https://msdn.microsoft.com/en-us/library/bb773268.aspx">DROPDESCRIPTION</a>
+		[id(DISPID_ODO_SETDROPDESCRIPTION), helpstring("Sets the drop description displayed below the drag image. Requires Windows Vista or newer.")]
+		HRESULT SetDropDescription([in, optional] VARIANT targetDescription, [in, optional] VARIANT actionDescription, [in, defaultvalue(ddiNone)] DropDescriptionIconConstants Icon);
+	}
+
+
+	/// \interface _IOLEDataObjectEvents
+	/// \brief <em>The \c OLEDataObject class' events interface</em>
+	///
+	/// This interface defines all events the \c OLEDataObject class may raise.
+	///
+	/// \sa IOLEDataObject
+	[
+		uuid(EB690928-08E6-46D9-8F52-ED176B972EE3),
+		helpstring("IOLEDataObject-event-interface")
+	]
+	dispinterface _IOLEDataObjectEvents
+	{
+		properties:
+		methods:
+	};
+
+
+	/// \brief <em>The \c OLEDataObject class</em>
+	///
+	/// This COM class implements the \c IOLEDataObject and \c _IOLEDataObjectEvents interfaces.
+	///
+	/// \sa IOLEDataObject, _IOLEDataObjectEvents
+	[
+		uuid(4E3C698C-2EC8-4607-AA14-62B6A591AB5E),
+		version(1.2),
+		noncreatable,
+		helpstring("OLEDataObject Class 1.2 (Unicode)")
+	]
+	coclass OLEDataObject
+	{
+		[default] interface IOLEDataObject;
+		[default, source] dispinterface _IOLEDataObjectEvents;
+	};
+
+
+	/// \interface IPager
+	/// \author Timo "TimoSoft" Kunze
+	/// \brief <em>The main interface</em>
+	///
+	/// This is the pager control's main interface. It wraps the control window.
+	///
+	/// \sa _IPagerEvents
+	[
+		object,
+		uuid(B9D7E146-72F2-4016-907E-8F05019E9D0A),
+		dual,
+		nonextensible,
+		helpstring("IPager interface"),
+		pointer_default(unique)
+	]
+	interface IPager : IDispatch
+	{
+		/// \brief <em>Controls the style of the control's outer border</em>
+		///
+		/// Retrieves or sets the kind of border that is drawn around the control. Any of the values defined
+		/// by the \c AppearanceConstants enumeration is valid.
+		///
+		/// \sa BorderStyle, AppearanceConstants
+		[propget, id(DISPID_PGR_APPEARANCE), helpstring("Retrieves or sets the kind of border that is drawn around the control.")]
+		HRESULT Appearance([out, retval] AppearanceConstants* pValue);
+		[propput, id(DISPID_PGR_APPEARANCE), helpstring("Retrieves or sets the kind of border that is drawn around the control.")]
+		HRESULT Appearance([in] AppearanceConstants newValue);
+		/// \if PRIVATEDOC
+		///   \brief <em>Retrieves the control's application ID</em>
+		///
+		///   Retrieves the control's application ID. This property is part of the fingerprint that
+		///   uniquely identifies each software written by Timo "TimoSoft" Kunze.
+		///
+		///   \remarks This property is hidden and read-only.
+		///
+		///   \sa AppName, AppShortName, Build, CharSet, IsRelease, Programmer, Tester
+		/// \endif
+		[propget, id(DISPID_PGR_APPID), hidden]
+		HRESULT AppID([out, retval] SHORT* pValue);
+		/// \if PRIVATEDOC
+		///   \brief <em>Retrieves the control's application name</em>
+		///
+		///   Retrieves the control's application name. This property is part of the fingerprint that
+		///   uniquely identifies each software written by Timo "TimoSoft" Kunze.
+		///
+		///   \remarks This property is hidden and read-only.
+		///
+		///   \sa AppID, AppShortName, Build, CharSet, IsRelease, Programmer, Tester
+		/// \endif
+		[propget, id(DISPID_PGR_APPNAME), hidden]
+		HRESULT AppName([out, retval] BSTR* pValue);
+		/// \if PRIVATEDOC
+		///   \brief <em>Retrieves the control's short application name</em>
+		///
+		///   Retrieves the control's short application name. This property is part of the fingerprint
+		///   that uniquely identifies each software written by Timo "TimoSoft" Kunze.
+		///
+		///   \remarks This property is hidden and read-only.
+		///
+		///   \sa AppID, AppName, Build, CharSet, IsRelease, Programmer, Tester
+		/// \endif
+		[propget, id(DISPID_PGR_APPSHORTNAME), hidden]
+		HRESULT AppShortName([out, retval] BSTR* pValue);
+		/// \brief <em>Controls the speed of automatic scrolling</em>
+		///
+		/// Retrieves or sets the number of milliseconds between two automatically generated scroll events.
+		/// If the \c ScrollAutomatically property is set to \c True, the control scrolls automatically as
+		/// soon as the mouse cursor is located over one of the scroll buttons. This property specifies the
+		/// rate at which automatic scroll events are generated and therefore also controls scrolling speed.\n
+		/// If set to -1, the system's default frequency is used.
+		///
+		/// \sa AutoScrollLinesPerTimeout, AutoScrollPixelsPerLine, ScrollAutomatically,
+		///     _IPagerEvents::BeforeScroll
+		[propget, id(DISPID_PGR_AUTOSCROLLFREQUENCY), helpstring("Retrieves or sets the number of milliseconds between two automatically generated scroll events. If set to -1, the system's default frequency is used.")]
+		HRESULT AutoScrollFrequency([out, retval] LONG* pValue);
+		[propput, id(DISPID_PGR_AUTOSCROLLFREQUENCY), helpstring("Retrieves or sets the number of milliseconds between two automatically generated scroll events. If set to -1, the system's default frequency is used.")]
+		HRESULT AutoScrollFrequency([in] LONG newValue);
+		/// \brief <em>Controls the speed of automatic scrolling</em>
+		///
+		/// Retrieves or sets the number of lines to scroll on each automatically generated scroll event.
+		/// If the \c ScrollAutomatically property is set to \c True, the control scrolls automatically as
+		/// soon as the mouse cursor is located over one of the scroll buttons. This property specifies the
+		/// number of lines to scroll on each scroll event and therefore also controls scrolling speed.\n
+		/// If set to 0, the system's default settings for the \c AutoScrollLinesPerTimeout and
+		/// \c AutoScrollPixelsPerLine properties are used.
+		///
+		/// \sa AutoScrollPixelsPerLine, AutoScrollFrequency, ScrollAutomatically, _IPagerEvents::BeforeScroll
+		[propget, id(DISPID_PGR_AUTOSCROLLLINESPERTIMEOUT), helpstring("Retrieves or sets the number of lines to scroll on each automatically generated scroll event. If set to 0, the system's default settings for the 'AutoScrollLinesPerTimeout' and 'AutoScrollPixelsPerLine' properties are used.")]
+		HRESULT AutoScrollLinesPerTimeout([out, retval] SHORT* pValue);
+		[propput, id(DISPID_PGR_AUTOSCROLLLINESPERTIMEOUT), helpstring("Retrieves or sets the number of lines to scroll on each automatically generated scroll event. If set to 0, the system's default settings for the 'AutoScrollLinesPerTimeout' and 'AutoScrollPixelsPerLine' properties are used.")]
+		HRESULT AutoScrollLinesPerTimeout([in] SHORT newValue);
+		/// \brief <em>Controls the speed of automatic scrolling</em>
+		///
+		/// Retrieves or sets the number of pixels that form a line on automatically generated scroll events.
+		/// If the \c ScrollAutomatically property is set to \c True, the control scrolls automatically as
+		/// soon as the mouse cursor is located over one of the scroll buttons. The control is scrolled in
+		/// lines. This property specifies the size of the line (in pixels) and therefore also controls
+		/// scrolling speed.\n
+		/// If the \c AutoScrollLinesPerTimeout property is set to 0, the system's default settings for the
+		/// \c AutoScrollLinesPerTimeout and \c AutoScrollPixelsPerLine properties are used.
+		///
+		/// \sa AutoScrollLinesPerTimeout, AutoScrollFrequency, ScrollAutomatically,
+		///     _IPagerEvents::BeforeScroll
+		[propget, id(DISPID_PGR_AUTOSCROLLPIXELSPERLINE), helpstring("Retrieves or sets the number of pixels that form a line on automatically generated scroll events. If the 'AutoScrollLinesPerTimeout' property is set to 0, this property is ignored and the system's defaults are used for both properties.")]
+		HRESULT AutoScrollPixelsPerLine([out, retval] SHORT* pValue);
+		[propput, id(DISPID_PGR_AUTOSCROLLPIXELSPERLINE), helpstring("Retrieves or sets the number of pixels that form a line on automatically generated scroll events. If the 'AutoScrollLinesPerTimeout' property is set to 0, this property is ignored and the system's defaults are used for both properties.")]
+		HRESULT AutoScrollPixelsPerLine([in] SHORT newValue);
+		/// \brief <em>Specifies the control's background color</em>
+		///
+		/// Retrieves or sets the control's background color.
+		[propget, id(DISPID_PGR_BACKCOLOR), helpstring("Retrieves or sets the control's background color.")]
+		HRESULT BackColor([out, retval] OLE_COLOR* pValue);
+		[propput, id(DISPID_PGR_BACKCOLOR), helpstring("Retrieves or sets the control's background color.")]
+		HRESULT BackColor([in] OLE_COLOR newValue);
+		/// \brief <em>Specifies the size of the control's inner border</em>
+		///
+		/// Retrieves or sets the size of the control's inner border in pixels. It cannot be negative or larger
+		/// than the scroll button size.
+		///
+		/// \sa BorderStyle, ScrollButtonSize
+		[propget, id(DISPID_PGR_BORDERSIZE), helpstring("Retrieves or sets the size of the control's inner border in pixels. It cannot be negative or larger than the scroll button size.")]
+		HRESULT BorderSize([out, retval] LONG* pValue);
+		[propput, id(DISPID_PGR_BORDERSIZE), helpstring("Retrieves or sets the size of the control's inner border in pixels. It cannot be negative or larger than the scroll button size.")]
+		HRESULT BorderSize([in] LONG newValue);
+		/// \brief <em>Controls the style of the control's inner border</em>
+		///
+		/// Retrieves or sets the kind of inner border that is drawn around the control. Any of the values
+		/// defined by the \c BorderStyleConstants enumeration is valid.
+		///
+		/// \sa Appearance, BorderSize, BorderStyleConstants
+		[propget, id(DISPID_PGR_BORDERSTYLE), helpstring("Retrieves or sets the kind of inner border that is drawn around the control.")]
+		HRESULT BorderStyle([out, retval] BorderStyleConstants* pValue);
+		[propput, id(DISPID_PGR_BORDERSTYLE), helpstring("Retrieves or sets the kind of inner border that is drawn around the control.")]
+		HRESULT BorderStyle([in] BorderStyleConstants newValue);
+		/// \if PRIVATEDOC
+		///   \brief <em>Retrieves the control's build number</em>
+		///
+		///   Retrieves the control's build number. This property is part of the fingerprint
+		///   that uniquely identifies each software written by Timo "TimoSoft" Kunze.
+		///
+		///   \remarks This property is hidden and read-only.
+		///
+		///   \sa Version, AppID, AppName, AppShortName, CharSet, IsRelease, Programmer, Tester
+		/// \endif
+		[propget, id(DISPID_PGR_BUILD), hidden]
+		HRESULT Build([out, retval] LONG* pValue);
+		/// \if PRIVATEDOC
+		///   \brief <em>Retrieves the control's character set</em>
+		///
+		///   Retrieves the control's character set (Unicode or ANSI). This property is part of the
+		///   fingerprint that uniquely identifies each software written by Timo "TimoSoft" Kunze.
+		///
+		///   \remarks This property is hidden and read-only.
+		///
+		///   \sa AppID, AppName, AppShortName, Build, IsRelease, Programmer, Tester
+		/// \endif
+		[propget, id(DISPID_PGR_CHARSET), hidden]
+		HRESULT CharSet([out, retval] BSTR* pValue);
+		/// \brief <em>Specifies the current scrolling position of the control</em>
+		///
+		/// Retrieves or sets the amount by which the contained control is currently scrolled. The amount
+		/// specifies by how many pixels of the scrollable size (as specified in response to the
+		/// \c GetScrollableSize event) the contained control currently is scrolled. So, if the scrollable
+		/// size is 200 pixels and the scrolling position is 20 pixels, 10% of the total scrolling distance
+		/// have been covered.
+		///
+		/// \sa hContainedWindow, _IPagerEvents::BeforeScroll, _IPagerEvents::GetScrollableSize
+		[propget, id(DISPID_PGR_CURRENTSCROLLPOSITION), helpstring("Retrieves or sets the amount by which the contained control is currently scrolled."), nonbrowsable, bindable, displaybind, requestedit, defaultbind]
+		HRESULT CurrentScrollPosition([out, retval] LONG* pValue);
+		[propput, id(DISPID_PGR_CURRENTSCROLLPOSITION), helpstring("Retrieves or sets the amount by which the contained control is currently scrolled."), nonbrowsable, bindable, displaybind, requestedit, defaultbind]
+		HRESULT CurrentScrollPosition([in] LONG newValue);
+		/// \brief <em>Specifies whether the control intercepts double clicks</em>
+		///
+		/// Enables or disables double clicks. If set to \c True, double clicks are accepted; otherwise all
+		/// clicks are handled as single clicks.
+		///
+		/// \sa _IPagerEvents::DblClick, _IPagerEvents::MDblClick, _IPagerEvents::RDblClick, _IPagerEvents::XDblClick
+		[propget, id(DISPID_PGR_DETECTDOUBLECLICKS), helpstring("Enables or disables double clicks.")]
+		HRESULT DetectDoubleClicks([out, retval] VARIANT_BOOL* pValue);
+		[propput, id(DISPID_PGR_DETECTDOUBLECLICKS), helpstring("Enables or disables double clicks.")]
+		HRESULT DetectDoubleClicks([in] VARIANT_BOOL newValue);
+		/// \brief <em>Controls which events are fired</em>
+		///
+		/// Retrieves or sets the events that won't be fired. Disabling events increases performance.
+		/// Any combination of the values defined by the \c DisabledEventsConstants enumeration is valid.
+		///
+		/// \sa DisabledEventsConstants
+		[propget, id(DISPID_PGR_DISABLEDEVENTS), helpstring("Retrieves or sets the events that won't be fired. Disabling events increases performance."), nonbrowsable]
+		HRESULT DisabledEvents([out, retval] DisabledEventsConstants* pValue);
+		[propput, id(DISPID_PGR_DISABLEDEVENTS), helpstring("Retrieves or sets the events that won't be fired. Disabling events increases performance."), nonbrowsable]
+		HRESULT DisabledEvents([in] DisabledEventsConstants newValue);
+		// \brief <em>Controls redrawing of the control</em>
+		//
+		// Enables or disables automatic redrawing of the control. Disabling redraw while doing large changes
+		// on the control may increase performance. If set to \c False, the control will redraw itself
+		// automatically; otherwise not.
+		//[propget, id(DISPID_PGR_DONTREDRAW), helpstring("Enables or disables automatic redrawing of the control.")]
+		//HRESULT DontRedraw([out, retval] VARIANT_BOOL* pValue);
+		//[propput, id(DISPID_PGR_DONTREDRAW), helpstring("Enables or disables automatic redrawing of the control.")]
+		//HRESULT DontRedraw([in] VARIANT_BOOL newValue);
+		/// \brief <em>Controls whether the control accepts user input</em>
+		///
+		/// Enables or disables the control for user input. If set to \c True, it reacts to user input;
+		/// otherwise not.
+		[propget, id(DISPID_PGR_ENABLED), helpstring("Enables or disables the control for user input.")]
+		HRESULT Enabled([out, retval] VARIANT_BOOL* pValue);
+		[propput, id(DISPID_PGR_ENABLED), helpstring("Enables or disables the control for user input.")]
+		HRESULT Enabled([in] VARIANT_BOOL newValue);
+		/// \brief <em>Controls whether the \c WM_MOUSEMOVE message is forwarded to the contained window</em>
+		///
+		/// Retrieves or sets whether the pager control forwards \c WM_MOUSEMOVE messages that it receives to
+		/// the contained window. If set to \c True, those messages are forwarded; otherwise not.
+		///
+		/// \sa hContainedWindow, _IPagerEvents::MouseMove,
+		///     <a href="https://msdn.microsoft.com/en-us/library/ms645616.aspx">WM_MOUSEMOVE</a>
+		[propget, id(DISPID_PGR_FORWARDMOUSEMESSAGESTOCONTAINEDWINDOW), helpstring("Retrieves or sets whether the pager control forwards 'WM_MOUSEMOVE' messages that it receives to the contained window.")]
+		HRESULT ForwardMouseMessagesToContainedWindow([out, retval] VARIANT_BOOL* pValue);
+		[propput, id(DISPID_PGR_FORWARDMOUSEMESSAGESTOCONTAINEDWINDOW), helpstring("Retrieves or sets whether the pager control forwards 'WM_MOUSEMOVE' messages that it receives to the contained window.")]
+		HRESULT ForwardMouseMessagesToContainedWindow([in] VARIANT_BOOL newValue);
+		/// \brief <em>Specifies the window that is scrolled by the pager control</em>
+		///
+		/// Retrieves or sets the handle of the window that is scrolled by the pager control.
+		///
+		/// \sa hWnd, _IPagerEvents::GetScrollableSize
+		[propget, id(DISPID_PGR_HCONTAINEDWINDOW), helpstring("Retrieves or sets the handle of the window that is scrolled by the pager control."), nonbrowsable]
+		HRESULT hContainedWindow([out, retval] OLE_HANDLE* pValue);
+		[propput, id(DISPID_PGR_HCONTAINEDWINDOW), helpstring("Retrieves or sets the handle of the window that is scrolled by the pager control."), nonbrowsable]
+		HRESULT hContainedWindow([in] OLE_HANDLE newValue);
+		/// \brief <em>Controls when the \c MouseHover event is fired</em>
+		///
+		/// Retrieves or sets the number of milliseconds the mouse cursor must be located over the
+		/// control's client area before the \c MouseHover event is fired. If set to -1, the system hover
+		/// time is used.
+		///
+		/// \sa _IPagerEvents::MouseHover
+		[propget, id(DISPID_PGR_HOVERTIME), helpstring("Retrieves or sets the number of milliseconds the mouse cursor must be located over the control's client area before the 'MouseHover' event is fired.")]
+		HRESULT HoverTime([out, retval] LONG* pValue);
+		[propput, id(DISPID_PGR_HOVERTIME), helpstring("Retrieves or sets the number of milliseconds the mouse cursor must be located over the control's client area before the 'MouseHover' event is fired.")]
+		HRESULT HoverTime([in] LONG newValue);
+		/// \brief <em>Retrieves the control's window handle</em>
+		///
+		/// Retrieves the control's window handle.
+		///
+		/// \remarks This property is read-only.
+		///
+		/// \sa hContainedWindow, _IPagerEvents::RecreatedControlWindow,
+		///     _IPagerEvents::DestroyedControlWindow
+		[propget, id(DISPID_PGR_HWND), helpstring("Retrieves the control's window handle."), nonbrowsable]
+		HRESULT hWnd([out, retval] OLE_HANDLE* pValue);
+		/// \if PRIVATEDOC
+		///   \brief <em>Retrieves the control's release type</em>
+		///
+		///   Retrieves the control's release type. This property is part of the fingerprint
+		///   that uniquely identifies each software written by Timo "TimoSoft" Kunze. If set to
+		///   \c True, the control was compiled for release; otherwise it was compiled for debugging.
+		///
+		///   \remarks This property is hidden and read-only.
+		///
+		///   \sa AppID, AppName, AppShortName, Build, CharSet, Programmer, Tester
+		/// \endif
+		[propget, id(DISPID_PGR_ISRELEASE), hidden]
+		HRESULT IsRelease([out, retval] VARIANT_BOOL* pValue);
+		/// \brief <em>Controls the control's mouse cursor</em>
+		///
+		/// Retrieves or sets a user-defined mouse cursor. It's used if \c MousePointer is set to
+		/// \c mpCustom.
+		///
+		/// \sa MousePointer, MousePointerConstants
+		[propget, id(DISPID_PGR_MOUSEICON), helpstring("Retrieves or sets a user-defined mouse cursor.")]
+		HRESULT MouseIcon([out, retval] IPictureDisp** ppMouseIcon);
+		[propput, id(DISPID_PGR_MOUSEICON), helpstring("Retrieves or sets a user-defined mouse cursor.")]
+		HRESULT MouseIcon([in] IPictureDisp* pNewMouseIcon);
+		[propputref, id(DISPID_PGR_MOUSEICON), helpstring("Retrieves or sets a user-defined mouse cursor.")]
+		HRESULT MouseIcon([in] IPictureDisp* pNewMouseIcon);
+		/// \brief <em>Controls the control's mouse cursor</em>
+		///
+		/// Retrieves or sets the cursor's type that's used if the mouse cursor is placed within the
+		/// control's client area. Any of the values defined by the \c MousePointerConstants enumeration
+		/// is valid.
+		///
+		/// \sa MouseIcon, MousePointerConstants
+		[propget, id(DISPID_PGR_MOUSEPOINTER), helpstring("Retrieves or sets the cursor's type that's used if the mouse cursor is placed within the control's client area.")]
+		HRESULT MousePointer([out, retval] MousePointerConstants* pValue);
+		[propput, id(DISPID_PGR_MOUSEPOINTER), helpstring("Retrieves or sets the cursor's type that's used if the mouse cursor is placed within the control's client area.")]
+		HRESULT MousePointer([in] MousePointerConstants newValue);
+		/// \brief <em>Retrieves the native pager control's \c IDropTarget implementation</em>
+		///
+		/// \remarks This property is read-only.
+		///
+		/// \sa RegisterForOLEDragDrop
+		[propget, id(DISPID_PGR_NATIVEDROPTARGET), helpstring("Retrieves the native pager control's 'IDropTarget' implementation."), nonbrowsable]
+		HRESULT NativeDropTarget([out, retval] IUnknown** ppValue);
+		/// \brief <em>Controls the control's orientation</em>
+		///
+		/// Retrieves or sets the control's scrolling axis. Any of the values defined by the
+		/// \c OrientationConstants enumeration is valid.
+		///
+		/// \sa OrientationConstants
+		[propget, id(DISPID_PGR_ORIENTATION), helpstring("Retrieves or sets the control's scrolling axis.")]
+		HRESULT Orientation([out, retval] OrientationConstants* pValue);
+		[propput, id(DISPID_PGR_ORIENTATION), helpstring("Retrieves or sets the control's scrolling axis.")]
+		HRESULT Orientation([in] OrientationConstants newValue);
+		/// \if PRIVATEDOC
+		///   \brief <em>Retrieves the name(s) of the control's programmer(s)</em>
+		///
+		///   Retrieves the name(s) of the control's programmer(s). This property is part of the
+		///   fingerprint that uniquely identifies each software written by Timo "TimoSoft" Kunze.
+		///
+		///   \remarks This property is hidden and read-only.
+		///
+		///   \sa AppID, AppName, AppShortName, Build, CharSet, IsRelease, Tester
+		/// \endif
+		[propget, id(DISPID_PGR_PROGRAMMER), hidden]
+		HRESULT Programmer([out, retval] BSTR* pValue);
+		/// \brief <em>Controls the control's behavior in drag'n'drop operations</em>
+		///
+		/// Retrieves or sets whether the control is registered as a target for OLE drag'n'drop. If set to
+		/// \c True, the control accepts OLE drag'n'drop actions; otherwise not.
+		///
+		/// \sa SupportOLEDragImages, _IPagerEvents::OLEDragEnter
+		[propget, id(DISPID_PGR_REGISTERFOROLEDRAGDROP), helpstring("Retrieves or sets whether the control is registered as a target for OLE drag'n'drop.")]
+		HRESULT RegisterForOLEDragDrop([out, retval] VARIANT_BOOL* pValue);
+		[propput, id(DISPID_PGR_REGISTERFOROLEDRAGDROP), helpstring("Retrieves or sets whether the control is registered as a target for OLE drag'n'drop.")]
+		HRESULT RegisterForOLEDragDrop([in] VARIANT_BOOL newValue);
+		/// \brief <em>Controls the control's right-to-left features</em>
+		///
+		/// Retrieves or sets the control's general layout. If set to \c True, the layout direction is
+		/// right to left; otherwise it is left to right.
+		[propget, id(DISPID_PGR_RIGHTTOLEFTLAYOUT), helpstring("Retrieves or sets the control's general layout.")]
+		HRESULT RightToLeftLayout([out, retval] VARIANT_BOOL* pValue);
+		[propput, id(DISPID_PGR_RIGHTTOLEFTLAYOUT), helpstring("Retrieves or sets the control's general layout.")]
+		HRESULT RightToLeftLayout([in] VARIANT_BOOL newValue);
+		/// \brief <em>Specifies in which situations the contained control is scrolled automatically</em>
+		///
+		/// Retrieves or sets in which situations the contained control is scrolled automatically. Any of the
+		/// values defined by the \c ScrollAutomaticallyConstants enumeration is valid.
+		///
+		/// \sa AutoScrollFrequency, AutoScrollLinesPerTimeout, AutoScrollPixelsPerLine,
+		///     _IPagerEvents::BeforeScroll, ScrollAutomaticallyConstants
+		[propget, id(DISPID_PGR_SCROLLAUTOMATICALLY), helpstring("Retrieves or sets in which situations the contained control is scrolled automatically.")]
+		HRESULT ScrollAutomatically([out, retval] ScrollAutomaticallyConstants* pValue);
+		[propput, id(DISPID_PGR_SCROLLAUTOMATICALLY), helpstring("Retrieves or sets in which situations the contained control is scrolled automatically.")]
+		HRESULT ScrollAutomatically([in] ScrollAutomaticallyConstants newValue);
+		/// \brief <em>Specifies the size of the control's scroll buttons in pixels</em>
+		///
+		/// Retrieves or sets the size of the control's scroll buttons in pixels.
+		///
+		/// \sa BorderSize
+		[propget, id(DISPID_PGR_SCROLLBUTTONSIZE), helpstring("Retrieves or sets the size of the control's scroll buttons in pixels.")]
+		HRESULT ScrollButtonSize([out, retval] LONG* pValue);
+		[propput, id(DISPID_PGR_SCROLLBUTTONSIZE), helpstring("Retrieves or sets the size of the control's scroll buttons in pixels.")]
+		HRESULT ScrollButtonSize([in] LONG newValue);
+		/// \brief <em>Retrieves the current state of a scroll button</em>
+		///
+		/// Retrieves the current state of one of the control's scroll buttons. Any combination of the values
+		/// defined by the \c ScrollButtonStateConstants enumeration is valid.
+		///
+		/// \param[in] scrollButton The scroll button for which to retrieve the state. Any of the values
+		///            defined by the \c ScrollButtonConstants enumeration is valid.
+		///
+		/// \remarks This property is read-only.
+		///
+		/// \sa Orientation, _IPagerEvents::GetScrollableSize, ScrollButtonConstants,
+		///     ScrollButtonStateConstants
+		[propget, id(DISPID_PGR_SCROLLBUTTONSTATE), helpstring("Retrieves the current state of one of the control's scroll buttons."), nonbrowsable]
+		HRESULT ScrollButtonState([in] ScrollButtonConstants scrollButton, [out, retval] ScrollButtonStateConstants* pValue);
+		/// \brief <em>Controls the control's behavior in drag'n'drop operations</em>
+		///
+		/// Retrieves or sets whether the control creates an \c IDropTargetHelper object, so that a drag image
+		/// can be displayed during OLE drag'n'drop. If set to \c True, the control creates the object;
+		/// otherwise not.
+		///
+		/// \remarks Requires shell32.dll version 5.0 or higher.
+		///
+		/// \sa RegisterForOLEDragDrop, FinishOLEDragDrop,
+		///     <a href="https://msdn.microsoft.com/en-us/library/ms646238.aspx">IDropTargetHelper</a>
+		[propget, id(DISPID_PGR_SUPPORTOLEDRAGIMAGES), helpstring("Retrieves or sets whether the control creates an 'IDropTargetHelper' object, so that a drag image can be displayed during OLE drag'n'drop. Requires shell32.dll version 5.0 or higher.")]
+		HRESULT SupportOLEDragImages([out, retval] VARIANT_BOOL* pValue);
+		[propput, id(DISPID_PGR_SUPPORTOLEDRAGIMAGES), helpstring("Retrieves or sets whether the control creates an 'IDropTargetHelper' object, so that a drag image can be displayed during OLE drag'n'drop. Requires shell32.dll version 5.0 or higher.")]
+		HRESULT SupportOLEDragImages([in] VARIANT_BOOL newValue);
+		/// \if PRIVATEDOC
+		///   \brief <em>Retrieves the name(s) of the control's tester(s)</em>
+		///
+		///   Retrieves the name(s) of the control's tester(s). This property is part of the
+		///   fingerprint that uniquely identifies each software written by Timo "TimoSoft" Kunze.
+		///
+		///   \remarks This property is hidden and read-only.
+		///
+		///   \sa AppID, AppName, AppShortName, Build, CharSet, IsRelease, Programmer
+		/// \endif
+		[propget, id(DISPID_PGR_TESTER), hidden]
+		HRESULT Tester([out, retval] BSTR* pValue);
+		/// \brief <em>Retrieves the control's version</em>
+		///
+		/// \remarks This property is read-only.
+		[propget, id(DISPID_PGR_VERSION), helpstring("Retrieves the control's version."), nonbrowsable]
+		HRESULT Version([out, retval] BSTR* pValue);
+
+		/// \brief <em>Displays the control's credits</em>
+		///
+		/// Displays some information about this control and its author.
+		[id(DISPID_PGR_ABOUT), helpstring("Displays some information about this control and its author.")]
+		HRESULT About(void);
+		/// \brief <em>Hit-tests the specified point</em>
+		///
+		/// Retrieves the control's parts that lie below the point ('x'; 'y').
+		///
+		/// \param[in] x The x-coordinate (in pixels) of the point to check. It must be relative to the
+		///            upper-left corner of the control's client area.
+		/// \param[in] y The y-coordinate (in pixels) of the point to check. It must be relative to the
+		///            upper-left corner of the control's client area.
+		/// \param[in,out] hitTestDetails Receives a value specifying the exact part of the control the
+		///                specified point lies in. Any of the values defined by the \c HitTestConstants
+		///                enumeration is valid.
+		///
+		/// \return A value specifying the exact part of the control the specified point lies in. Any of the
+		///         values defined by the \c HitTestConstants enumeration is valid.
+		///
+		/// \remarks The scroll buttons are not part of the control's client area. Therefore \c x and \c y can
+		///          be negative.
+		///
+		/// \sa HitTestConstants
+		[id(DISPID_PGR_HITTEST), helpstring("Retrieves the control's parts that lie below the point ('x'; 'y').")]
+		HRESULT HitTest([in] OLE_XPOS_PIXELS x, [in] OLE_YPOS_PIXELS y, [out, retval] HitTestConstants* pHitTestDetails);
+		/// \brief <em>Loads the control's settings from the specified file</em>
+		///
+		/// \param[in] file The file to read from.
+		///
+		/// \return \c True if the settings could be loaded; otherwise \c False.
+		///
+		/// \sa SaveSettingsToFile
+		[id(DISPID_PGR_LOADSETTINGSFROMFILE), helpstring("Loads the control's settings from the specified file.")]
+		HRESULT LoadSettingsFromFile([in] BSTR file, [out, retval] VARIANT_BOOL* pSucceeded);
+		/// \brief <em>Advises the control to redraw itself</em>
+		[id(DISPID_PGR_REFRESH), helpstring("Advises the control to redraw itself.")]
+		HRESULT Refresh(void);
+		/// \brief <em>Saves the control's settings to the specified file</em>
+		///
+		/// \param[in] file The file to write to.
+		///
+		/// \return \c True if the settings could be saved; otherwise \c False.
+		///
+		/// \sa LoadSettingsFromFile
+		[id(DISPID_PGR_SAVESETTINGSTOFILE), helpstring("Saves the control's settings to the specified file.")]
+		HRESULT SaveSettingsToFile([in] BSTR file, [out, retval] VARIANT_BOOL* pSucceeded);
+		/// \brief <em>Forces the control to recalculate the size of the contained window</em>
+		///
+		/// Forces the control to recalculate the scrollable size of the contained window and the current
+		/// scroll position. The control will fire the \c GetScrollableSize event to retrieve the contained
+		/// window's scrollable size.
+		///
+		/// \sa hContainedWindow, _IPagerEvents::GetScrollableSize
+		[id(DISPID_PGR_UPDATESCROLLABLESIZE), helpstring(" Forces the control to recalculate the scrollable size of the contained window and the current scroll position.")]
+		HRESULT UpdateScrollableSize(void);
+
+		/// \brief <em>Finishes a pending drop operation</em>
+		///
+		/// During a drag'n'drop operation the drag image is displayed until the \c OLEDragDrop event has been
+		/// handled. This order is intended by Microsoft Windows. However, if a message box is displayed from
+		/// within the \c OLEDragDrop event, or the drop operation cannot be performed asynchronously and takes
+		/// a long time, it may be desirable to remove the drag image earlier.\n
+		/// This method will break the intended order and finish the drag'n'drop operation (including removal
+		/// of the drag image) immediately.
+		///
+		/// \remarks This method will fail if not called from the \c OLEDragDrop event handler or if no drag
+		///          images are used.
+		///
+		/// \sa _IPagerEvents::OLEDragDrop, SupportOLEDragImages
+		[id(DISPID_PGR_FINISHOLEDRAGDROP), helpstring("Finishes a pending drop operation from within the 'OLEDragDrop' event, removing the drag image, but breaking the intended order. See documentation for details.")]
+		HRESULT FinishOLEDragDrop(void);
+	};
+
+
+	/// \interface _IPagerEvents
+	/// \author Timo "TimoSoft" Kunze
+	/// \brief <em>The \c Pager class' events interface</em>
+	///
+	/// This interface defines all events the \c Pager class may raise.
+	///
+	/// \sa IPager
+	[
+		uuid(C5D9388F-A7FB-4691-8984-DBF2F8D19675),
+		helpstring("IPager-event-interface")
+	]
+	dispinterface _IPagerEvents
+	{
+		properties:
+		methods:
+			/// \brief <em>The contained window's scrollable size is required</em>
+			///
+			/// Will be fired if the controls requires the size by which the contained control can be scrolled.
+			///
+			/// \param[in] orientation The dimension of the required value. Any of the values defined by the
+			///            \c OrientationConstants enumeration is valid. If \c orientation is \c oHorizontal, the
+			///            width of the scrollable area is required. If \c orientation is \c oVertical, the
+			///            height of the scrollable area is required.
+			/// \param[out] scrollableSize Set this parameter to the width or height of the scrollable area of
+			///             the contained control.
+			///
+			/// \remarks This is the control's default event.
+			///
+			/// \sa IPager::hContainedWindow, IPager::Orientation, IPager::UpdateScrollableSize,
+			///     OrientationConstants
+			[id(DISPID_PGRE_GETSCROLLABLESIZE), helpstring("Will be fired if the controls requires the size by which the contained control can be scrolled.")]
+			void GetScrollableSize(OrientationConstants Orientation, LONG* scrollableSize);
+			/// \brief <em>The contained control is being scrolled</em>
+			///
+			/// Will be fired before the contained control is being scrolled.
+			///
+			/// \param[in] scrollDirection The directions into which the control is being scrolled. Any of the values
+			///            defined by the \c ScrollDirectionConstants enumeration is valid.
+			/// \param[in] shift The modifier keys (Shift, Ctrl, Alt) that are being pressed. Any combination of the
+			///            values defined by VB's \c ShiftConstants enumeration is valid.
+			/// \param[in] clientRectangle A \c RECTANGLE structure specifying the bounding rectangle of the pager
+			///            control's client area.
+			/// \param[in] horizontalScrollPosition The contained control's current scroll position in horizontal
+			///            direction.
+			/// \param[in] verticalScrollPosition The contained control's current scroll position in vertical
+			///            direction.
+			/// \param[in,out] scrollDelta The number of pixels by which the scroll position is about to be changed.
+			///                This value may be changed by the client application.
+			///
+			/// \sa ScrollDirectionConstants, RECTANGLE, IPager::Orientation, GetScrollableSize
+			[id(DISPID_PGRE_BEFORESCROLL), helpstring("Will be fired before the contained control is being scrolled.")]
+			void BeforeScroll(ScrollDirectionConstants scrollDirection, SHORT shift, RECTANGLE* clientRectangle, LONG horizontalScrollPosition, LONG verticalScrollPosition, LONG* scrollDelta);
+			/// \brief <em>The user clicked into the control's client area</em>
+			///
+			/// Will be fired if the user clicks into the control's client area using the left mouse button.
+			///
+			/// \param[in] button The mouse buttons that were pressed during the click. This should always
+			///            be \c vbLeftButton (defined by VB's \c MouseButtonConstants enumeration).
+			/// \param[in] shift The modifier keys (Shift, Ctrl, Alt) that were pressed during the click.
+			///            Any combination of the values defined by VB's \c ShiftConstants enumeration is
+			///            valid.
+			/// \param[in] x The x-coordinate (in twips) of the click's position relative to the upper-left
+			///            corner of the control's client area.
+			/// \param[in] y The y-coordinate (in twips) of the click's position relative to the upper-left
+			///            corner of the control's client area.
+			/// \param[in] hitTestDetails Specifies the part of the control that was clicked. Any of the
+			///            values defined by the \c HitTestConstants enumeration is valid.
+			///
+			/// \remarks The scroll buttons are not part of the control's client area. Therefore \c x and \c y can
+			///          be negative.\n
+			///          This event may be disabled.
+			///
+			/// \sa DblClick, MClick, RClick, XClick, HitTestConstants, IPager::DisabledEvents
+			[id(DISPID_PGRE_CLICK), helpstring("Will be fired if the user clicks into the control's client area using the left mouse button. This event may be disabled.")]
+			void Click(SHORT button, SHORT shift, OLE_XPOS_PIXELS x, OLE_YPOS_PIXELS y, HitTestConstants hitTestDetails);
+			/// \brief <em>The context menu should be displayed</em>
+			///
+			/// Will be fired if the control's context menu should be displayed.
+			///
+			/// \param[in] button The pressed mouse buttons. Any combination of the values defined by VB's
+			///            \c MouseButtonConstants enumeration is valid.
+			/// \param[in] shift The pressed modifier keys (Shift, Ctrl, Alt). Any combination of the values
+			///            defined by VB's \c ShiftConstants enumeration is valid.
+			/// \param[in] x The x-coordinate (in twips) of the menu's proposed position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] y The y-coordinate (in twips) of the menu's proposed position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] hitTestDetails Specifies the part of the control that the menu's proposed position
+			///            lies in. Any of the values defined by the \c HitTestConstants enumeration is valid.
+			///
+			/// \remarks The scroll buttons are not part of the control's client area. Therefore \c x and \c y can
+			///          be negative.
+			///
+			/// \sa RClick, HitTestConstants
+			[id(DISPID_PGRE_CONTEXTMENU), helpstring("Will be fired if the control's context menu should be displayed.")]
+			void ContextMenu(SHORT button, SHORT shift, OLE_XPOS_PIXELS x, OLE_YPOS_PIXELS y, HitTestConstants hitTestDetails);
+			/// \brief <em>The user double-clicked into the control's client area</em>
+			///
+			/// Will be fired if the user double-clicks into the control's client area using the left mouse
+			/// button.
+			///
+			/// \param[in] button The mouse buttons that were pressed during the double-click. This should
+			///            always be \c vbLeftButton (defined by VB's \c MouseButtonConstants enumeration).
+			/// \param[in] shift The modifier keys (Shift, Ctrl, Alt) that were pressed during the
+			///            double-click. Any combination of the values defined by VB's \c ShiftConstants
+			///            enumeration is valid.
+			/// \param[in] x The x-coordinate (in twips) of the double-click's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] y The y-coordinate (in twips) of the double-click's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] hitTestDetails Specifies the part of the control that was double-clicked. Any of the
+			///            values defined by the \c HitTestConstants enumeration is valid.
+			///
+			/// \remarks The scroll buttons are not part of the control's client area. Therefore \c x and \c y can
+			///          be negative.\n
+			///          This event may be disabled.
+			///
+			/// \sa Click, MDblClick, RDblClick, XDblClick, HitTestConstants, IPager::DetectDoubleClicks,
+			///     IPager::DisabledEvents
+			[id(DISPID_PGRE_DBLCLICK), helpstring("Will be fired if the user double-clicks into the control's client area using the left mouse button. This event may be disabled.")]
+			void DblClick(SHORT button, SHORT shift, OLE_XPOS_PIXELS x, OLE_YPOS_PIXELS y, HitTestConstants hitTestDetails);
+			/// \brief <em>The control window was destroyed</em>
+			///
+			/// Will be fired after the control window was destroyed.
+			///
+			/// \param[in] hWnd The control's window handle.
+			///
+			/// \sa RecreatedControlWindow, IPager::hWnd
+			[id(DISPID_PGRE_DESTROYEDCONTROLWINDOW), helpstring("Will be fired after the control window was destroyed.")]
+			void DestroyedControlWindow(LONG hWnd);
+			/// \brief <em>The control's hot button is about to change</em>
+			///
+			/// Will be fired before another button becomes the control's hot button. The hot button is the
+			/// button under the mouse cursor.
+			///
+			/// \param[in] scrollButton The affected scroll button. Any of the values defined by the
+			///            \c ScrollButtonConstants enumeration is valid.
+			/// \param[in] causedBy The reason for the hot button change. Any combination of the values defined
+			///            by the \c HotButtonChangingCausedByConstants enumeration is valid.
+			/// \param[in] additionalInfo Additional information over the hot button change. Any combination of
+			///            the values defined by the \c HotButtonChangingAdditionalInfoConstants enumeration is
+			///            valid.
+			/// \param[in,out] cancelChange If set to \c True, the hot button change is aborted, i. e. the
+			///                current hot button remains the hot button. If set to \c False, the hot button
+			///                change is completed.
+			///
+			/// \remarks Requires comctl32.dll version 6.0 or higher.\n
+			///          With current versions of Windows, the \c scrollButton parameter always seems to be -1,
+			///          if the \c additionalInfo parameter includes the \c hbcaiLeaving flag.\n
+			///          Current versions of Windows seem to ignore the \c cancelChange parameter.\n
+			///          This event may be disabled.
+			///
+			/// \sa IPager::DisabledEvents, ScrollButtonConstants, HotButtonChangingCausedByConstants,
+			///     HotButtonChangingAdditionalInfoConstants
+			[id(DISPID_PGRE_HOTBUTTONCHANGING), helpstring("Will be fired before another button becomes the control's hot button. The hot button is the button under the mouse cursor. This event may be disabled.")]
+			void HotButtonChanging(ScrollButtonConstants scrollButton, HotButtonChangingCausedByConstants causedBy, HotButtonChangingAdditionalInfoConstants additionalInfo, VARIANT_BOOL* cancelChange);
+			/// \brief <em>The user clicked into the control's client area</em>
+			///
+			/// Will be fired if the user clicks into the control's client area using the middle mouse button.
+			///
+			/// \param[in] button The mouse buttons that were pressed during the click. This should always
+			///            be \c vbMiddleButton (defined by VB's \c MouseButtonConstants enumeration).
+			/// \param[in] shift The modifier keys (Shift, Ctrl, Alt) that were pressed during the click.
+			///            Any combination of the values defined by VB's \c ShiftConstants enumeration is
+			///            valid.
+			/// \param[in] x The x-coordinate (in twips) of the click's position relative to the upper-left
+			///            corner of the control's client area.
+			/// \param[in] y The y-coordinate (in twips) of the click's position relative to the upper-left
+			///            corner of the control's client area.
+			/// \param[in] hitTestDetails Specifies the part of the control that was clicked. Any of the
+			///            values defined by the \c HitTestConstants enumeration is valid.
+			///
+			/// \remarks The scroll buttons are not part of the control's client area. Therefore \c x and \c y can
+			///          be negative.\n
+			///          This event may be disabled.
+			///
+			/// \sa MDblClick, Click, RClick, XClick, HitTestConstants, IPager::DisabledEvents
+			[id(DISPID_PGRE_MCLICK), helpstring("Will be fired if the user clicks into the control's client area using the middle mouse button. This event may be disabled.")]
+			void MClick(SHORT button, SHORT shift, OLE_XPOS_PIXELS x, OLE_YPOS_PIXELS y, HitTestConstants hitTestDetails);
+			/// \brief <em>The user double-clicked into the control's client area</em>
+			///
+			/// Will be fired if the user double-clicks into the control's client area using the middle mouse
+			/// button.
+			///
+			/// \param[in] button The mouse buttons that were pressed during the double-click. This should
+			///            always be \c vbMiddleButton (defined by VB's \c MouseButtonConstants enumeration).
+			/// \param[in] shift The modifier keys (Shift, Ctrl, Alt) that were pressed during the
+			///            double-click. Any combination of the values defined by VB's \c ShiftConstants
+			///            enumeration is valid.
+			/// \param[in] x The x-coordinate (in twips) of the double-click's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] y The y-coordinate (in twips) of the double-click's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] hitTestDetails Specifies the part of the control that was double-clicked. Any of the
+			///            values defined by the \c HitTestConstants enumeration is valid.
+			///
+			/// \remarks The scroll buttons are not part of the control's client area. Therefore \c x and \c y can
+			///          be negative.\n
+			///          This event may be disabled.
+			///
+			/// \sa MClick, DblClick, RDblClick, XDblClick, HitTestConstants, IPager::DetectDoubleClicks,
+			///     IPager::DisabledEvents
+			[id(DISPID_PGRE_MDBLCLICK), helpstring("Will be fired if the user double-clicks into the control's client area using the middle mouse button. This event may be disabled.")]
+			void MDblClick(SHORT button, SHORT shift, OLE_XPOS_PIXELS x, OLE_YPOS_PIXELS y, HitTestConstants hitTestDetails);
+			/// \brief <em>A mouse button was pressed over the control's client area</em>
+			///
+			/// Will be fired if the user presses a mouse button while the mouse cursor is located over the
+			/// control's client area.
+			///
+			/// \param[in] button The pressed mouse button. Any of the values defined by VB's
+			///            \c MouseButtonConstants enumeration or the \c ExtendedMouseButtonConstants enumeration
+			///            is valid.
+			/// \param[in] shift The pressed modifier keys (Shift, Ctrl, Alt). Any combination of the values
+			///            defined by VB's \c ShiftConstants enumeration is valid.
+			/// \param[in] x The x-coordinate (in twips) of the mouse cursor's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] y The y-coordinate (in twips) of the mouse cursor's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] hitTestDetails Specifies the part of the control that the mouse cursor's position lies
+			///            in. Any of the values defined by the \c HitTestConstants enumeration is valid.
+			///
+			/// \remarks The scroll buttons are not part of the control's client area. Therefore \c x and \c y can
+			///          be negative.\n
+			///          This event may be disabled.
+			///
+			/// \sa MouseUp, Click, MClick, RClick, XClick, HitTestConstants, ExtendedMouseButtonConstants,
+			///     IPager::DisabledEvents
+			[id(DISPID_PGRE_MOUSEDOWN), helpstring("Will be fired if the user presses a mouse button while the mouse cursor is located over the control's client area. This event may be disabled.")]
+			void MouseDown(SHORT button, SHORT shift, OLE_XPOS_PIXELS x, OLE_YPOS_PIXELS y, HitTestConstants hitTestDetails);
+			/// \brief <em>The mouse cursor was moved into the control's client area</em>
+			///
+			/// Will be fired if the user moved the mouse cursor into the control's client area.
+			///
+			/// \param[in] button The pressed mouse buttons. Any combination of the values defined by VB's
+			///            \c MouseButtonConstants enumeration or the \c ExtendedMouseButtonConstants enumeration
+			///            is valid.
+			/// \param[in] shift The pressed modifier keys (Shift, Ctrl, Alt). Any combination of the values
+			///            defined by VB's \c ShiftConstants enumeration is valid.
+			/// \param[in] x The x-coordinate (in twips) of the mouse cursor's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] y The y-coordinate (in twips) of the mouse cursor's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] hitTestDetails Specifies the part of the control that the mouse cursor's position lies
+			///            in. Any of the values defined by the \c HitTestConstants enumeration is valid.
+			///
+			/// \remarks The scroll buttons are not part of the control's client area. Therefore \c x and \c y can
+			///          be negative.\n
+			///          This event may be disabled.
+			///
+			/// \sa MouseLeave, MouseHover, MouseMove, HitTestConstants, ExtendedMouseButtonConstants,
+			///     IPager::DisabledEvents
+			[id(DISPID_PGRE_MOUSEENTER), helpstring("Will be fired if the user moved the mouse cursor into the control's client area. This event may be disabled.")]
+			void MouseEnter(SHORT button, SHORT shift, OLE_XPOS_PIXELS x, OLE_YPOS_PIXELS y, HitTestConstants hitTestDetails);
+			/// \brief <em>The mouse cursor was moved into the control's client area a specified period of time before</em>
+			///
+			/// Will be fired if the mouse cursor has been located over the control's client area for the number
+			/// of milliseconds specified by the \c IPager::HoverTime property.
+			///
+			/// \param[in] button The pressed mouse buttons. Any combination of the values defined by VB's
+			///            \c MouseButtonConstants enumeration or the \c ExtendedMouseButtonConstants enumeration
+			///            is valid.
+			/// \param[in] shift The pressed modifier keys (Shift, Ctrl, Alt). Any combination of the values
+			///            defined by VB's \c ShiftConstants enumeration is valid.
+			/// \param[in] x The x-coordinate (in twips) of the mouse cursor's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] y The y-coordinate (in twips) of the mouse cursor's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] hitTestDetails Specifies the part of the control that the mouse cursor's position lies
+			///            in. Any of the values defined by the \c HitTestConstants enumeration is valid.
+			///
+			/// \remarks The scroll buttons are not part of the control's client area. Therefore \c x and \c y can
+			///          be negative.\n
+			///          This event may be disabled.
+			///
+			/// \sa MouseEnter, MouseLeave, MouseMove, HitTestConstants, ExtendedMouseButtonConstants,
+			///     IPager::HoverTime, IPager::DisabledEvents
+			[id(DISPID_PGRE_MOUSEHOVER), helpstring("Will be fired if the mouse cursor has been located over the control's client area for the number of milliseconds specified by the 'HoverTime' property. This event may be disabled.")]
+			void MouseHover(SHORT button, SHORT shift, OLE_XPOS_PIXELS x, OLE_YPOS_PIXELS y, HitTestConstants hitTestDetails);
+			/// \brief <em>The mouse cursor was moved out of the control's client area</em>
+			///
+			/// Will be fired if the user moves the mouse cursor out of the control's client area.
+			///
+			/// \param[in] button The pressed mouse buttons. Any combination of the values defined by VB's
+			///            \c MouseButtonConstants enumeration or the \c ExtendedMouseButtonConstants enumeration
+			///            is valid.
+			/// \param[in] shift The pressed modifier keys (Shift, Ctrl, Alt). Any combination of the values
+			///            defined by VB's \c ShiftConstants enumeration is valid.
+			/// \param[in] x The x-coordinate (in twips) of the mouse cursor's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] y The y-coordinate (in twips) of the mouse cursor's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] hitTestDetails Specifies the part of the control that the mouse cursor's position lies
+			///            in. Any of the values defined by the \c HitTestConstants enumeration is valid.
+			///
+			/// \remarks The scroll buttons are not part of the control's client area. Therefore \c x and \c y can
+			///          be negative.\n
+			///          This event may be disabled.
+			///
+			/// \sa MouseEnter, MouseHover, MouseMove, HitTestConstants, ExtendedMouseButtonConstants,
+			///     IPager::DisabledEvents
+			[id(DISPID_PGRE_MOUSELEAVE), helpstring("Will be fired if the user moves the mouse cursor out of the control's client area. This event may be disabled.")]
+			void MouseLeave(SHORT button, SHORT shift, OLE_XPOS_PIXELS x, OLE_YPOS_PIXELS y, HitTestConstants hitTestDetails);
+			/// \brief <em>The mouse cursor was moved over the control's client area</em>
+			///
+			/// Will be fired if the user moves the mouse cursor over the control's client area.
+			///
+			/// \param[in] button The pressed mouse buttons. Any combination of the values defined by VB's
+			///            \c MouseButtonConstants enumeration or the \c ExtendedMouseButtonConstants enumeration
+			///            is valid.
+			/// \param[in] shift The pressed modifier keys (Shift, Ctrl, Alt). Any combination of the values
+			///            defined by VB's \c ShiftConstants enumeration is valid.
+			/// \param[in] x The x-coordinate (in twips) of the mouse cursor's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] y The y-coordinate (in twips) of the mouse cursor's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] hitTestDetails Specifies the part of the control that the mouse cursor's position lies
+			///            in. Any of the values defined by the \c HitTestConstants enumeration is valid.
+			///
+			/// \remarks The scroll buttons are not part of the control's client area. Therefore \c x and \c y can
+			///          be negative.\n
+			///          This event may be disabled.
+			///
+			/// \sa MouseEnter, MouseLeave, MouseDown, MouseUp, HitTestConstants, ExtendedMouseButtonConstants,
+			///     IPager::DisabledEvents, IPager::ForwardMouseMessagesToContainedWindow
+			[id(DISPID_PGRE_MOUSEMOVE), helpstring("Will be fired if the user moves the mouse cursor over the control's client area. This event may be disabled.")]
+			void MouseMove(SHORT button, SHORT shift, OLE_XPOS_PIXELS x, OLE_YPOS_PIXELS y, HitTestConstants hitTestDetails);
+			/// \brief <em>A mouse button was released over the control's client area</em>
+			///
+			/// Will be fired if the user releases a mouse button while the mouse cursor is located over the
+			/// control's client area.
+			///
+			/// \param[in] button The released mouse button. Any of the values defined by VB's
+			///            \c MouseButtonConstants enumeration or the \c ExtendedMouseButtonConstants enumeration
+			///            is valid.
+			/// \param[in] shift The pressed modifier keys (Shift, Ctrl, Alt). Any combination of the values
+			///            defined by VB's \c ShiftConstants enumeration is valid.
+			/// \param[in] x The x-coordinate (in twips) of the mouse cursor's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] y The y-coordinate (in twips) of the mouse cursor's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] hitTestDetails Specifies the part of the control that the mouse cursor's position lies
+			///            in. Any of the values defined by the \c HitTestConstants enumeration is valid.
+			///
+			/// \remarks The scroll buttons are not part of the control's client area. Therefore \c x and \c y can
+			///          be negative.\n
+			///          This event may be disabled.
+			///
+			/// \sa MouseDown, Click, MClick, RClick, XClick, HitTestConstants, ExtendedMouseButtonConstants,
+			///     IPager::DisabledEvents
+			[id(DISPID_PGRE_MOUSEUP), helpstring("Will be fired if the user releases a mouse button while the mouse cursor is located over the control's client area. This event may be disabled.")]
+			void MouseUp(SHORT button, SHORT shift, OLE_XPOS_PIXELS x, OLE_YPOS_PIXELS y, HitTestConstants hitTestDetails);
+			/// \brief <em>The data was dropped onto the control during OLE drag'n'drop</em>
+			///
+			/// Will be fired during OLE drag'n'drop if the user completes the operation while the mouse cursor
+			/// is located over the control's client area.
+			///
+			/// \param[in] data The dropped data.
+			/// \param[in,out] effect On entry, a bit field of the drop effects (defined by the
+			///                \c OLEDropEffectConstants enumeration) supported by the drag source. On
+			///                return, this paramter must be set to the drop effect that the target finally
+			///                executed.
+			/// \param[in] button The pressed mouse buttons. Any combination of the values defined by VB's
+			///            \c MouseButtonConstants enumeration is valid.
+			/// \param[in] shift The pressed modifier keys (Shift, Ctrl, Alt). Any combination of the values
+			///            defined by VB's \c ShiftConstants enumeration is valid.
+			/// \param[in] x The x-coordinate (in twips) of the mouse cursor's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] y The y-coordinate (in twips) of the mouse cursor's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] hitTestDetails Specifies the part of the control that the mouse cursor's position lies
+			///            in. Any of the values defined by the \c HitTestConstants enumeration is valid.
+			///
+			/// \remarks The scroll buttons are not part of the control's client area. Therefore \c x and \c y can
+			///          be negative.\n
+			///          Don't forget to release any references that you hold to the data object.
+			///
+			/// \sa OLEDragEnter, OLEDragMouseMove, OLEDragLeave, MouseUp, IPager::RegisterForOLEDragDrop,
+			///     IPager::FinishOLEDragDrop, OLEDropEffectConstants, HitTestConstants
+			[id(DISPID_PGRE_OLEDRAGDROP), helpstring("Will be fired during OLE drag'n'drop if the user completes the operation while the mouse cursor is located over the control's client area.")]
+			void OLEDragDrop(IOLEDataObject* data, OLEDropEffectConstants* effect, SHORT button, SHORT shift, OLE_XPOS_PIXELS x, OLE_YPOS_PIXELS y, HitTestConstants hitTestDetails);
+			/// \brief <em>The data was dragged into the control during OLE drag'n'drop</em>
+			///
+			/// Will be fired during OLE drag'n'drop if the user moved the mouse cursor into the control's
+			/// client area.
+			///
+			/// \param[in] data The dragged data.
+			/// \param[in,out] effect On entry, a bit field of the drop effects (defined by the
+			///                \c OLEDropEffectConstants enumeration) supported by the drag source. On
+			///                return, this paramter must be set to the drop effect that the target wants
+			///                to be used on drop.
+			/// \param[in] button The pressed mouse buttons. Any combination of the values defined by VB's
+			///            \c MouseButtonConstants enumeration is valid.
+			/// \param[in] shift The pressed modifier keys (Shift, Ctrl, Alt). Any combination of the values
+			///            defined by VB's \c ShiftConstants enumeration is valid.
+			/// \param[in] x The x-coordinate (in twips) of the mouse cursor's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] y The y-coordinate (in twips) of the mouse cursor's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] hitTestDetails Specifies the part of the control that the mouse cursor's position lies
+			///            in. Any of the values defined by the \c HitTestConstants enumeration is valid.
+			///
+			/// \remarks The scroll buttons are not part of the control's client area. Therefore \c x and \c y can
+			///          be negative.
+			///
+			/// \sa OLEDragMouseMove, OLEDragLeave, OLEDragDrop, MouseEnter, IPager::RegisterForOLEDragDrop,
+			///     OLEDropEffectConstants, HitTestConstants
+			[id(DISPID_PGRE_OLEDRAGENTER), helpstring("Will be fired during OLE drag'n'drop if the user moved the mouse cursor into the control's client area.")]
+			void OLEDragEnter(IOLEDataObject* data, OLEDropEffectConstants* effect, SHORT button, SHORT shift, OLE_XPOS_PIXELS x, OLE_YPOS_PIXELS y, HitTestConstants hitTestDetails);
+			/// \brief <em>The data was dragged out of the control during OLE drag'n'drop</em>
+			///
+			/// Will be fired during OLE drag'n'drop if the user moves the mouse cursor out of the control's
+			/// client area or if the user canceled the drag'n'drop operation.
+			///
+			/// \param[in] data The dragged data.
+			/// \param[in] button The pressed mouse buttons. Any combination of the values defined by VB's
+			///            \c MouseButtonConstants enumeration is valid.
+			/// \param[in] shift The pressed modifier keys (Shift, Ctrl, Alt). Any combination of the values
+			///            defined by VB's \c ShiftConstants enumeration is valid.
+			/// \param[in] x The x-coordinate (in twips) of the mouse cursor's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] y The y-coordinate (in twips) of the mouse cursor's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] hitTestDetails Specifies the part of the control that the mouse cursor's position lies
+			///            in. Any of the values defined by the \c HitTestConstants enumeration is valid.
+			///
+			/// \remarks The scroll buttons are not part of the control's client area. Therefore \c x and \c y can
+			///          be negative.\n
+			///          Don't forget to release any references that you hold to the data object.
+			///
+			/// \sa OLEDragEnter, OLEDragMouseMove, OLEDragDrop, MouseLeave, IPager::RegisterForOLEDragDrop,
+			///     HitTestConstants
+			[id(DISPID_PGRE_OLEDRAGLEAVE), helpstring("Will be fired during OLE drag'n'drop if the user moves the mouse cursor over the control's client area or if the user canceled the drag'n'drop operation.")]
+			void OLEDragLeave(IOLEDataObject* data, SHORT button, SHORT shift, OLE_XPOS_PIXELS x, OLE_YPOS_PIXELS y, HitTestConstants hitTestDetails);
+			/// \brief <em>The data was dragged over the control during OLE drag'n'drop</em>
+			///
+			/// Will be fired during OLE drag'n'drop if the user moves the mouse cursor over the control's
+			/// client area.
+			///
+			/// \param[in] data The dragged data.
+			/// \param[in,out] effect On entry, a bit field of the drop effects (defined by the
+			///                \c OLEDropEffectConstants enumeration) supported by the drag source. On
+			///                return, this paramter must be set to the drop effect that the target wants
+			///                to be used on drop.
+			/// \param[in] button The pressed mouse buttons. Any combination of the values defined by VB's
+			///            \c MouseButtonConstants enumeration is valid.
+			/// \param[in] shift The pressed modifier keys (Shift, Ctrl, Alt). Any combination of the values
+			///            defined by VB's \c ShiftConstants enumeration is valid.
+			/// \param[in] x The x-coordinate (in twips) of the mouse cursor's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] y The y-coordinate (in twips) of the mouse cursor's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] hitTestDetails Specifies the part of the control that the mouse cursor's position lies
+			///            in. Any of the values defined by the \c HitTestConstants enumeration is valid.
+			///
+			/// \remarks The scroll buttons are not part of the control's client area. Therefore \c x and \c y can
+			///          be negative.
+			///
+			/// \sa OLEDragEnter, OLEDragLeave, OLEDragDrop, MouseMove, IPager::RegisterForOLEDragDrop,
+			///     OLEDropEffectConstants, HitTestConstants
+			[id(DISPID_PGRE_OLEDRAGMOUSEMOVE), helpstring("Will be fired during OLE drag'n'drop if the user moves the mouse cursor over the control's client area.")]
+			void OLEDragMouseMove(IOLEDataObject* data, OLEDropEffectConstants* effect, SHORT button, SHORT shift, OLE_XPOS_PIXELS x, OLE_YPOS_PIXELS y, HitTestConstants hitTestDetails);
+			/// \brief <em>The user clicked into the control's client area</em>
+			///
+			/// Will be fired if the user clicks into the control's client area using the right mouse button.
+			///
+			/// \param[in] button The mouse buttons that were pressed during the click. This should always
+			///            be \c vbRightButton (defined by VB's \c MouseButtonConstants enumeration).
+			/// \param[in] shift The modifier keys (Shift, Ctrl, Alt) that were pressed during the click.
+			///            Any combination of the values defined by VB's \c ShiftConstants enumeration is
+			///            valid.
+			/// \param[in] x The x-coordinate (in twips) of the click's position relative to the upper-left
+			///            corner of the control's client area.
+			/// \param[in] y The y-coordinate (in twips) of the click's position relative to the upper-left
+			///            corner of the control's client area.
+			/// \param[in] hitTestDetails Specifies the part of the control that was clicked. Any of the
+			///            values defined by the \c HitTestConstants enumeration is valid.
+			///
+			/// \remarks The scroll buttons are not part of the control's client area. Therefore \c x and \c y can
+			///          be negative.\n
+			///          This event may be disabled.
+			///
+			/// \sa ContextMenu, RDblClick, Click, MClick, XClick, HitTestConstants, IPager::DisabledEvents
+			[id(DISPID_PGRE_RCLICK), helpstring("Will be fired if the user clicks into the control's client area using the right mouse button. This event may be disabled.")]
+			void RClick(SHORT button, SHORT shift, OLE_XPOS_PIXELS x, OLE_YPOS_PIXELS y, HitTestConstants hitTestDetails);
+			/// \brief <em>The user double-clicked into the control's client area</em>
+			///
+			/// Will be fired if the user double-clicks into the control's client area using the right mouse
+			/// button.
+			///
+			/// \param[in] button The mouse buttons that were pressed during the double-click. This should
+			///            always be \c vbRightButton (defined by VB's \c MouseButtonConstants enumeration).
+			/// \param[in] shift The modifier keys (Shift, Ctrl, Alt) that were pressed during the
+			///            double-click. Any combination of the values defined by VB's \c ShiftConstants
+			///            enumeration is valid.
+			/// \param[in] x The x-coordinate (in twips) of the double-click's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] y The y-coordinate (in twips) of the double-click's position relative to the
+			///            upper-left corner of the control's client area.
+			/// \param[in] hitTestDetails Specifies the part of the control that was double-clicked. Any of the
+			///            values defined by the \c HitTestConstants enumeration is valid.
+			///
+			/// \remarks The scroll buttons are not part of the control's client area. Therefore \c x and \c y can
+			///          be negative.\n
+			///          This event may be disabled.
+			///
+			/// \sa RClick, DblClick, MDblClick, XDblClick, HitTestConstants, IPager::DetectDoubleClicks,
+			///     IPager::DisabledEvents
+			[id(DISPID_PGRE_RDBLCLICK), helpstring("Will be fired if the user double-clicks into the control's client area using the right mouse button. This event may be disabled.")]
+			void RDblClick(SHORT button, SHORT shift, OLE_XPOS_PIXELS x, OLE_YPOS_PIXELS y, HitTestConstants hitTestDetails);
+			/// \brief <em>The control window was recreated</em>
+			///
+			/// Will be fired after the control window was destroyed and recreated.\n
+			/// Some properties can't be changed after the control window was created. If such a property is
+			/// changed and the control window already exists, it is destroyed and recreated.
+			///
+			/// \param[in] hWnd The control's window handle.
+			///
+			/// \sa DestroyedControlWindow, IPager::hWnd
+			[id(DISPID_PGRE_RECREATEDCONTROLWINDOW), helpstring("Will be fired after the control window was destroyed and recreated.")]
+			void RecreatedControlWindow(LONG hWnd);
+			/// \brief <em>The control window was resized</em>
+			///
+			/// Will be fired after the control window was resized.
+			[id(DISPID_PGRE_RESIZEDCONTROLWINDOW), helpstring("Will be fired after the control window was resized.")]
+			void ResizedControlWindow(void);
+			/// \brief <em>The user clicked into the control's client area</em>
+			///
+			/// Will be fired if the user clicks into the control's client area using one of the extended mouse
+			/// buttons.
+			///
+			/// \param[in] button The mouse buttons that were pressed during the click. This should always
+			///            be a constant defined by the \c ExtendedMouseButtonConstants enumeration.
+			/// \param[in] shift The modifier keys (Shift, Ctrl, Alt) that were pressed during the click.
+			///            Any combination of the values defined by VB's \c ShiftConstants enumeration is
+			///            valid.
+			/// \param[in] x The x-coordinate (in twips) of the click's position relative to the control's
+			///            upper-left corner.
+			/// \param[in] y The y-coordinate (in twips) of the click's position relative to the control's
+			///            upper-left corner.
+			/// \param[in] hitTestDetails Specifies the part of the control that was clicked. Any of the
+			///            values defined by the \c HitTestConstants enumeration is valid.
+			///
+			/// \remarks The scroll buttons are not part of the control's client area. Therefore \c x and \c y can
+			///          be negative.\n
+			///          This event may be disabled.
+			///
+			/// \sa XDblClick, Click, MClick, XClick, HitTestConstants, ExtendedMouseButtonConstants,
+			///     IPager::DisabledEvents
+			[id(DISPID_PGRE_XCLICK), helpstring("Will be fired if the user clicks into the control's client area using one of the extended mouse buttons. This event may be disabled.")]
+			void XClick(SHORT button, SHORT shift, OLE_XPOS_PIXELS x, OLE_YPOS_PIXELS y, HitTestConstants hitTestDetails);
+			/// \brief <em>The user double-clicked into the control's client area</em>
+			///
+			/// Will be fired if the user double-clicks into the control's client area using one of the extended
+			/// mouse buttons.
+			///
+			/// \param[in] button The mouse buttons that were pressed during the double-click. This should
+			///            be a constant defined by the \c ExtendedMouseButtonConstants enumeration.
+			/// \param[in] shift The modifier keys (Shift, Ctrl, Alt) that were pressed during the
+			///            double-click. Any combination of the values defined by VB's \c ShiftConstants
+			///            enumeration is valid.
+			/// \param[in] x The x-coordinate (in twips) of the double-click's position relative to the control's
+			///            upper-left corner.
+			/// \param[in] y The y-coordinate (in twips) of the double-click's position relative to the control's
+			///            upper-left corner.
+			/// \param[in] hitTestDetails Specifies the part of the control that was double-clicked. Any of the
+			///            values defined by the \c HitTestConstants enumeration is valid.
+			///
+			/// \remarks The scroll buttons are not part of the control's client area. Therefore \c x and \c y can
+			///          be negative.\n
+			///          This event may be disabled.
+			///
+			/// \sa XClick, DblClick, MDblClick, RDblClick, HitTestConstants, ExtendedMouseButtonConstants,
+			///     IPager::DetectDoubleClicks, IPager::DisabledEvents
+			[id(DISPID_PGRE_XDBLCLICK), helpstring("Will be fired if the user double-clicks into the control's client area using one of the extended mouse buttons. This event may be disabled.")]
+			void XDblClick(SHORT button, SHORT shift, OLE_XPOS_PIXELS x, OLE_YPOS_PIXELS y, HitTestConstants hitTestDetails);
+	};
+
+
+	/// \author Timo "TimoSoft" Kunze
+	/// \brief <em>The \c Pager class</em>
+	///
+	/// The control's main COM class. It implements the \c IPager and
+	/// \c _IPagerEvents interfaces.
+	///
+	/// \sa IPager, _IPagerEvents
+	[
+		uuid(DF6596FB-AFA4-489C-94B0-FAC1615747AA),
+		version(1.2),
+		helpstring("Pager Control 1.2 (Unicode)")
+	]
+	coclass Pager
+	{
+		[default] interface IPager;
+		[default, source] dispinterface _IPagerEvents;
+	};
+
+
+	[
+		uuid(174E3825-EDAA-47CB-9E09-C0FEA03EF460),
+		version(1.2),
+		noncreatable,
+		helpstring("CommonProperties Class 1.2 (Unicode)"),
+		hidden
+	]
+	coclass CommonProperties
+	{
+		[default] interface IUnknown;
+	};
+};

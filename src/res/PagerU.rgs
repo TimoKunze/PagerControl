@@ -1,0 +1,43 @@
+HKCR
+{
+	PagerCtlU.Pager.1 = s 'TimoSoft Pager Control 1.2 (Unicode)'
+	{
+		CLSID = s '{DF6596FB-AFA4-489C-94B0-FAC1615747AA}'
+		'Insertable'
+	}
+	PagerCtlU.Pager = s 'TimoSoft Pager Control 1.2 (Unicode)'
+	{
+		CLSID = s '{DF6596FB-AFA4-489C-94B0-FAC1615747AA}'
+		CurVer = s 'PagerCtlU.Pager.1'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {DF6596FB-AFA4-489C-94B0-FAC1615747AA} = s 'TimoSoft Pager Control 1.2 (Unicode)'
+		{
+			ProgID = s 'PagerCtlU.Pager.1'
+			VersionIndependentProgID = s 'PagerCtlU.Pager'
+			ForceRemove 'Programmable'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			ForceRemove 'Implemented Categories'
+			{
+				'{40FC6ED4-2438-11CF-A3DB-080036F12502}'
+				'{0DE86A57-2BAA-11CF-A229-00AA003D7352}'
+				'{0DE86A53-2BAA-11CF-A229-00AA003D7352}'
+				'{157083E0-2368-11CF-87B9-00AA006C8166}'
+			}
+			val AppID = s '%APPID%'
+			ForceRemove 'Control'
+			ForceRemove 'Insertable'
+			ForceRemove 'ToolboxBitmap32' = s '%MODULE%, 1'
+			'MiscStatus' = s '0'
+			{
+				'1' = s '%OLEMISC%'
+			}
+			'TypeLib' = s '{BF3044AA-8379-499E-B75E-34A1626746D4}'
+			'Version' = s '1.2'
+		}
+	}
+}

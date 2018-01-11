@@ -1,0 +1,20 @@
+The following parts of the SysPager API (Windows 10) are not used:
+
+Control styles:
+---------------
+
+Messages:
+---------
+
+Notifications:
+--------------
+
+Structures:
+-----------
+
+Flags:
+------
+
+
+Functions:
+----------

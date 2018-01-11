@@ -1,0 +1,25 @@
+HKCR
+{
+	PagerCtlA.CommonProperties.1 = s 'TimoSoft CommonProperties Class 1.2 (ANSI)'
+	{
+		CLSID = s '{7897BCD1-21AD-4FF2-9971-5E3638DA8276}'
+	}
+	PagerCtlA.CommonProperties = s 'TimoSoft CommonProperties Class (ANSI)'
+	{
+		CLSID = s '{7897BCD1-21AD-4FF2-9971-5E3638DA8276}'
+		CurVer = s 'PagerCtlA.CommonProperties.1'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {7897BCD1-21AD-4FF2-9971-5E3638DA8276} = s 'TimoSoft CommonProperties Class (ANSI)'
+		{
+			ProgID = s 'PagerCtlA.CommonProperties.1'
+			VersionIndependentProgID = s 'PagerCtlA.CommonProperties'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			'TypeLib' = s '{B779E069-CB72-41A0-B5A8-01FFD03CFD6A}'
+		}
+	}
+}

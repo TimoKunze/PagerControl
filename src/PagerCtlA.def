@@ -1,0 +1,9 @@
+; PagerCtlA.def: Declares the module parameters. (ANSI version)
+
+LIBRARY      "PagerCtlA.ocx"
+
+EXPORTS
+	DllCanUnloadNow		PRIVATE
+	DllGetClassObject	PRIVATE
+	DllRegisterServer	PRIVATE
+	DllUnregisterServer	PRIVATE

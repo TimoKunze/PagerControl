@@ -1,0 +1,9 @@
+; PagerCtlU.def: Declares the module parameters. (Unicode version)
+
+LIBRARY      "PagerCtlU.ocx"
+
+EXPORTS
+	DllCanUnloadNow		PRIVATE
+	DllGetClassObject	PRIVATE
+	DllRegisterServer	PRIVATE
+	DllUnregisterServer	PRIVATE
