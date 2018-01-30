@@ -1,9 +1,9 @@
 //////////////////////////////////////////////////////////////////////
 /// \class AboutDlg
 /// \author Timo "TimoSoft" Kunze
-/// \brief <em>The controls' about dialog</em>
+/// \brief <em>The control's about dialog</em>
 ///
-/// This class contains the controls' about dialog, which contains credits, a link to our website,
+/// This class contains the control's about dialog, which contains credits, a link to our website,
 /// a Paypal link and other things.
 ///
 /// \todo Improve documentation.
@@ -94,8 +94,8 @@ protected:
 		CStatic specialThanks;
 		/// \brief <em>Wraps the link label displaying the URL of our website</em>
 		HyperLinkEx homepage;
-		/// \brief <em>Wraps the link label displaying the URL of our bugtracker</em>
-		HyperLinkEx bugtracker;
+		/// \brief <em>Wraps the link label displaying the URL of the GitHub repository</em>
+		HyperLinkEx gitHubRepository;
 
 		/// \brief <em>Retrieves whether a window handle belongs to one of the dialog's static controls</em>
 		///

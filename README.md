@@ -1,6 +1,6 @@
 <p align=center>
-  <a href="https://github.com/TimoKunze/PagerControl/releases/tag/1.2.3">
-    <img alt="Release 1.2.3 Release" src="https://img.shields.io/badge/release-1.2.3-0688CB.svg">
+  <a href="https://github.com/TimoKunze/PagerControl/releases/tag/1.2.4">
+    <img alt="Release 1.2.4 Release" src="https://img.shields.io/badge/release-1.2.4-0688CB.svg">
   </a>
   <a href="https://github.com/TimoKunze/PagerControl/releases">
     <img alt="Download PagerControl" src="https://img.shields.io/badge/download-latest-0688CB.svg">
