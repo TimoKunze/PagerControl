@@ -3306,7 +3306,7 @@ HitTestConstants Pager::HitTest(LONG x, LONG y)
 	ATLASSERT(IsWindow());
 
 	POINT pt = {x, y};
-	HitTestConstants flags = static_cast<HitTestConstants>(0);
+	HitTestConstants hitTestFlags = static_cast<HitTestConstants>(0);
 
 	CRect windowRectangle;
 	GetWindowRect(&windowRectangle);
@@ -3321,19 +3321,19 @@ HitTestConstants Pager::HitTest(LONG x, LONG y)
 			DWORD borderSize = SendMessage(PGM_GETBORDER, 0, 0);
 			if(isVertical) {
 				if(x < clientRectangle.left + static_cast<LONG>(borderSize)) {
-					flags = static_cast<HitTestConstants>(flags | htTopOrLeftBorder);
+					hitTestFlags = static_cast<HitTestConstants>(hitTestFlags | htTopOrLeftBorder);
 				} else if(x >= clientRectangle.right - static_cast<LONG>(borderSize)) {
-					flags = static_cast<HitTestConstants>(flags | htBottomOrRightBorder);
+					hitTestFlags = static_cast<HitTestConstants>(hitTestFlags | htBottomOrRightBorder);
 				} else {
-					flags = static_cast<HitTestConstants>(flags | htClientArea);
+					hitTestFlags = static_cast<HitTestConstants>(hitTestFlags | htClientArea);
 				}
 			} else {
 				if(y < clientRectangle.top + static_cast<LONG>(borderSize)) {
-					flags = static_cast<HitTestConstants>(flags | htTopOrLeftBorder);
+					hitTestFlags = static_cast<HitTestConstants>(hitTestFlags | htTopOrLeftBorder);
 				} else if(y >= clientRectangle.bottom - static_cast<LONG>(borderSize)) {
-					flags = static_cast<HitTestConstants>(flags | htBottomOrRightBorder);
+					hitTestFlags = static_cast<HitTestConstants>(hitTestFlags | htBottomOrRightBorder);
 				} else {
-					flags = static_cast<HitTestConstants>(flags | htClientArea);
+					hitTestFlags = static_cast<HitTestConstants>(hitTestFlags | htClientArea);
 				}
 			}
 		} else {
@@ -3342,31 +3342,31 @@ HitTestConstants Pager::HitTest(LONG x, LONG y)
 			DWORD buttonSize = SendMessage(PGM_GETBUTTONSIZE, 0, 0);
 			if(isVertical) {
 				if(y < windowRectangle.top + static_cast<LONG>(buttonSize)) {
-					flags = static_cast<HitTestConstants>(flags | htTopOrLeftScrollButton);
+					hitTestFlags = static_cast<HitTestConstants>(hitTestFlags | htTopOrLeftScrollButton);
 				} else if(y >= windowRectangle.bottom - static_cast<LONG>(buttonSize)) {
-					flags = static_cast<HitTestConstants>(flags | htBottomOrRightScrollButton);
+					hitTestFlags = static_cast<HitTestConstants>(hitTestFlags | htBottomOrRightScrollButton);
 				}
 			} else {
 				if(x < windowRectangle.left + static_cast<LONG>(buttonSize)) {
-					flags = static_cast<HitTestConstants>(flags | htTopOrLeftScrollButton);
+					hitTestFlags = static_cast<HitTestConstants>(hitTestFlags | htTopOrLeftScrollButton);
 				} else if(x >= windowRectangle.right - static_cast<LONG>(buttonSize)) {
-					flags = static_cast<HitTestConstants>(flags | htBottomOrRightScrollButton);
+					hitTestFlags = static_cast<HitTestConstants>(hitTestFlags | htBottomOrRightScrollButton);
 				}
 			}
 		}
 	} else {
 		if(x < windowRectangle.left) {
-			flags = static_cast<HitTestConstants>(flags | htToLeft);
+			hitTestFlags = static_cast<HitTestConstants>(hitTestFlags | htToLeft);
 		} else if(x >= windowRectangle.right) {
-			flags = static_cast<HitTestConstants>(flags | htToRight);
+			hitTestFlags = static_cast<HitTestConstants>(hitTestFlags | htToRight);
 		}
 		if(y < windowRectangle.top) {
-			flags = static_cast<HitTestConstants>(flags | htAbove);
+			hitTestFlags = static_cast<HitTestConstants>(hitTestFlags | htAbove);
 		} else if(y >= windowRectangle.bottom) {
-			flags = static_cast<HitTestConstants>(flags | htBelow);
+			hitTestFlags = static_cast<HitTestConstants>(hitTestFlags | htBelow);
 		}
 	}
-	return flags;
+	return hitTestFlags;
 }
 
 BOOL Pager::IsInDesignMode(void)
