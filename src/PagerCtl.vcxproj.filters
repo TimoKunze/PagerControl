@@ -35,9 +35,6 @@
     <ClCompile Include="Pager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CWindowEx.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="EnumOLEVERB.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -129,9 +126,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CompilerFlags.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CWindowEx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DispIDs.h">

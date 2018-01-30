@@ -504,7 +504,6 @@
     <ClCompile Include="CommonProperties.cpp" />
     <ClCompile Include="PagerCtl.cpp" />
     <ClCompile Include="Pager.cpp" />
-    <ClCompile Include="CWindowEx.cpp" />
     <ClCompile Include="EnumOLEVERB.cpp" />
     <ClCompile Include="helpers.cpp" />
     <ClCompile Include="stdafx.cpp">
@@ -576,7 +575,6 @@
     <ClInclude Include="ClassFactory.h" />
     <ClInclude Include="Pager.h" />
     <ClInclude Include="CompilerFlags.h" />
-    <ClInclude Include="CWindowEx.h" />
     <ClInclude Include="DispIDs.h" />
     <ClInclude Include="EnumOLEVERB.h" />
     <ClInclude Include="helpers.h" />

@@ -2422,7 +2422,7 @@ LRESULT Pager::OnSetCursor(UINT /*message*/, WPARAM /*wParam*/, LPARAM /*lParam*
 	BOOL setCursor = FALSE;
 
 	// Are we really over the control?
-	WTL::CRect clientArea;
+	CRect clientArea;
 	// NOTE: The scroll buttons are not part of the client area.
 	/*GetClientRect(&clientArea);
 	ClientToScreen(&clientArea);*/
@@ -2503,7 +2503,7 @@ LRESULT Pager::OnWindowPosChanged(UINT /*message*/, WPARAM /*wParam*/, LPARAM lP
 {
 	LPWINDOWPOS pDetails = reinterpret_cast<LPWINDOWPOS>(lParam);
 
-	WTL::CRect windowRectangle = m_rcPos;
+	CRect windowRectangle = m_rcPos;
 	/* Ugly hack: We depend on this message being sent without SWP_NOMOVE at least once, but this requirement
 	              not always will be fulfilled. Fortunately pDetails seems to contain correct x and y values
 	              even if SWP_NOMOVE is set.
@@ -3308,12 +3308,12 @@ HitTestConstants Pager::HitTest(LONG x, LONG y)
 	POINT pt = {x, y};
 	HitTestConstants flags = static_cast<HitTestConstants>(0);
 
-	WTL::CRect windowRectangle;
+	CRect windowRectangle;
 	GetWindowRect(&windowRectangle);
 	ScreenToClient(&windowRectangle);
 	if(windowRectangle.PtInRect(pt)) {
 		// Are we inside the client area?
-		WTL::CRect clientRectangle;
+		CRect clientRectangle;
 		GetClientRect(&clientRectangle);
 		if(clientRectangle.PtInRect(pt)) {
 			// bingo
